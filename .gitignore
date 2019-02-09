@@ -6,4 +6,5 @@ node_modules/
 dist/
 flow-typed/npm/
 yarn.lock
+/*.txt
 config.json
