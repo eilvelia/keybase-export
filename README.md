@@ -26,6 +26,7 @@ Via npm:
 
 ```sh
 npm install keybase-export
+# global installation: $ npm install -g keybase-export
 ```
 
 Or clone from GitHib:
