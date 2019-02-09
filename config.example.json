@@ -1,0 +1,18 @@
+{
+  "chats": ["you", "you,them"],
+  "init": {
+    "type": "initFromRunningService"
+  },
+  "watcher": {
+    "enabled": true,
+    "timeout": 20
+  },
+  "elasticsearch": {
+    "enabled": true,
+    "indexPattern": "keybase_$channelname$",
+    "config": {
+      "host": "localhost:9200",
+      "log": "info"
+    }
+  }
+}

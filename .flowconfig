@@ -1,0 +1,14 @@
+[ignore]
+<PROJECT_ROOT>/dist/
+
+[include]
+
+[libs]
+
+[lints]
+
+[options]
+module.use_strict=true
+module.name_mapper='^keybase-bot$' -> '<PROJECT_ROOT>/node_modules/keybase-bot/lib'
+
+[strict]
