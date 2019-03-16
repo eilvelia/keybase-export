@@ -27,7 +27,7 @@
     "debug": "^3.2.6",
     "elasticsearch": "^15.3.1",
     "joi": "^14.3.1",
-    "keybase-bot": "^1.0.5"
+    "keybase-bot": "^2.0.4"
   },
   "devDependencies": {
     "@babel/cli": "^7.1.5",

@@ -69,34 +69,6 @@ function findChat (chats: ChatConversation[], query: string): ?ChatConversation 
   }
 }
 
-export type ReadResult = {|
-  messages: MessageSummary[],
-  pagination: Pagination,
-|}
-// Temporary workaround. See PR: https://github.com/keybase/keybase-bot/pull/116
-async function readWithPagination(
-  channel: ChatChannel,
-  options?: ChatReadOptions
-): Promise<ReadResult> {
-  await bot.chat._guardInitialized()
-  const optionsWithDefaults = {
-    ...options,
-    channel,
-    peek: options && options.peek ? options.peek : false,
-    unreadOnly: options && options.unreadOnly !== undefined ? options.unreadOnly : false,
-  }
-  const res = await bot.chat._runApiCommand({
-    apiName: 'chat', method: 'read', options: optionsWithDefaults })
-  if (!res) {
-    throw new Error('Keybase chat read returned nothing.')
-  }
-  // Pagination gets passed as-is, while the messages get cleaned up
-  return {
-    pagination: res.pagination,
-    messages: res.messages.map(message => message.msg),
-  }
-}
-
 function convertMessage (msg: MessageSummary): ?CleanedMessage {
   const output = {}
 
@@ -140,7 +112,7 @@ async function* loadHistory (channel: ChatChannel) {
   let totalMessages = 0
   let next = undefined
   while (true) {
-    const { messages, pagination } = await readWithPagination(channel, {
+    const { messages, pagination } = await bot.chat.read(channel, {
       peek: true,
       pagination: {
         num: CHUNK_SIZE,

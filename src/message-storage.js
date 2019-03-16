@@ -37,7 +37,7 @@ export class MessageStorage {
   }
 
   edit (content: EditContent) {
-    const id: number = (content.edit: $FlowFixMe).messageId // TODO: Bug in keybase-bot
+    const id = content.edit.messageId
     const value = this._map.get(id)
     if (!value)
       return debug(`edit: No msg with id ${id}`)
