@@ -70,10 +70,10 @@ const schema = Joi.object().keys({
   })
 }).unknown(true)
 
-// const CONFIG_PATH = 'config.example.json'
-const CONFIG_PATH = 'config.json'
+// const configPath = process.argv[2] || 'config.example.json'
+const configPath = process.argv[2] || 'config.json'
 
-const untrustedConfig = JSON.parse(fs.readFileSync(CONFIG_PATH).toString())
+const untrustedConfig = JSON.parse(fs.readFileSync(configPath).toString())
 
 const result = Joi.validate((untrustedConfig: Config), schema)
 

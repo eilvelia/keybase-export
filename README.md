@@ -50,4 +50,8 @@ npm run build
 1. Copy `config.example.json` to `config.json`
 2. `$ ./bin/keybase-export` or `$ node dist`
 
+```console
+$ keybase-export [path/to/config]
+```
+
 Debug mode: `DEBUG=keybase-export* ./bin/keybase-export`
