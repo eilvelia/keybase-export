@@ -32,7 +32,7 @@ npm install keybase-export
 # global installation: $ npm install -g keybase-export
 ```
 
-Or clone from GitHib:
+Or clone from GitHub:
 
 ```sh
 git clone https://github.com/Bannerets/keybase-export.git
