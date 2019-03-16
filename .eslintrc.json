@@ -7,5 +7,9 @@
   },
   "extends": [
     "@bannerets/eslint-config-flow"
-  ]
+  ],
+  "rules": {
+    "valid-jsdoc": 0,
+    "brace-style": 0
+  }
 }

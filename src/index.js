@@ -1,9 +1,7 @@
 // @flow
 
-import fs from 'fs'
 import Debug from 'debug'
 import Bot from 'keybase-bot'
-import { Client as ElasticClient } from 'elasticsearch'
 import { warn, err, fatal } from './log'
 import { config } from './config'
 import { ExportClient } from './export'
@@ -11,13 +9,8 @@ import { MessageStorage } from './message-storage'
 
 import type {
   ChatConversation,
-  TextContent,
   ChatChannel,
-  MessageSummary,
-  Pagination,
-  ChatReadOptions,
-  EditContent,
-  DeleteContent
+  MessageSummary
 } from 'keybase-bot/lib/chat-client/types'
 
 import type { CleanedMessage } from './types'

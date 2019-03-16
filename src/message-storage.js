@@ -11,6 +11,8 @@ import type { CleanedMessage } from './types'
 
 const debug = Debug('keybase-export:message-storage')
 
+/* eslint-disable flowtype/space-before-type-colon */
+
 /** Used in watcher for saving future editions & deletions */
 export class MessageStorage {
   +_map
