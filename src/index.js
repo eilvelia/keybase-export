@@ -172,14 +172,13 @@ async function processChat (chat: ChatConversation) {
 
 async function main () {
   console.log('Initializing')
+
   await init()
 
-  const { watcher } = config
+  process.on('SIGINT', deinit)
+  process.on('SIGTERM', deinit)
 
-  if (watcher.enabled) {
-    process.on('SIGINT', deinit)
-    process.on('SIGTERM', deinit)
-  }
+  const { watcher } = config
 
   debug('watcher.enabled', watcher.enabled)
   debug('watcher.timeout', watcher.timeout)
