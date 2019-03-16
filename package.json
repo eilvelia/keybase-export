@@ -1,7 +1,6 @@
 {
   "name": "keybase-export",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A tool to export keybase chats",
   "main": "dist/index.js",
   "scripts": {
