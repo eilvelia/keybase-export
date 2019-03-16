@@ -10,8 +10,11 @@ A tool to export keybase chats.
 - [x] Watcher
 - [ ] Incremental export
 - [x] Saving to ElasticSearch
+- [x] Saving to [jsonl][] (json lines)
 - [ ] Saving to SQLite
 - [ ] Attachment downloading
+
+[jsonl]: http://jsonlines.org/
 
 ### Config
 

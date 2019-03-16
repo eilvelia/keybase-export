@@ -18,6 +18,7 @@ type Config = {
     enabled: boolean,
     timeout: number // seconds
   |},
+  eol: string,
   // incremental: {|
   //   enabled: boolean,
   //   sessionFile: string
@@ -30,6 +31,10 @@ type Config = {
     enabled: boolean, // false is not supported currently
     indexPattern: string,
     config: Object // ElasticSearch config
+  |},
+  jsonl: {|
+    enabled: boolean, // false is not supported currently
+    file: string
   |}
 }
 
@@ -49,6 +54,7 @@ const schema = Joi.object().keys({
     enabled: Joi.boolean(),
     timeout: Joi.number()
   }),
+  eol: Joi.string(),
   // incremental: Joi.object().keys({
   //   enabled: Joi.boolean(),
   //   sessionFile: Joi.string()
@@ -57,6 +63,10 @@ const schema = Joi.object().keys({
     enabled: Joi.boolean(),
     indexPattern: Joi.string(),
     config: Joi.object()
+  }),
+  jsonl: Joi.object().keys({
+    enabled: Joi.boolean(),
+    file: Joi.string()
   })
 }).unknown(true)
 

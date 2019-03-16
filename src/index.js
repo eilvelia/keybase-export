@@ -1,5 +1,6 @@
 // @flow
 
+import fs from 'fs'
 import Debug from 'debug'
 import Bot from 'keybase-bot'
 import { Client as ElasticClient } from 'elasticsearch'
@@ -22,6 +23,7 @@ const debug = Debug('keybase-export')
 const bot = new Bot()
 
 const elasticClient = new ElasticClient(config.elasticsearch.config)
+const jsonlStream = fs.createWriteStream(config.jsonl.file)
 
 const INIT_OPTIONS = {
   disableTyping: true
@@ -172,6 +174,15 @@ async function* loadHistory (channel: ChatChannel) {
   console.log(`loadHistory end: ${channel.name} (${totalMessages} messages)`)
 }
 
+function saveChunkToJsonl (chat: ChatConversation, messages: CleanedMessage[]) {
+  const str = messages.map(m => JSON.stringify(m)).join(config.eol) + '\n'
+  return new Promise(resolve => {
+    jsonlStream.write(str, () => {
+      resolve()
+    })
+  })
+}
+
 async function saveChunkToEs (chat: ChatConversation, messages: CleanedMessage[]) {
   const indexName = genEsIndexName(chat)
   const preparedChunk: Object[] = messages.reduce((acc, msg) => {
@@ -280,6 +291,7 @@ async function processChat (chat: ChatConversation) {
     console.log(`New chunk (${chunk.length}): ${chat.channel.name}`)
     const cleanedMessages = chunk.map(convertMessage).filter(Boolean)
     await saveChunkToEs(chat, cleanedMessages)
+    await saveChunkToJsonl(chat, cleanedMessages)
     // console.dir(chunk.slice(-3), { depth: null })
   }
 }
@@ -320,7 +332,7 @@ async function main () {
 function deinit (): Promise<void> {
   console.log('deinit')
   return bot.deinit()
-    // .catch(fatal)
+    .catch(fatal)
 }
 
 elasticClient.ping({})

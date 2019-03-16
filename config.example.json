@@ -7,6 +7,7 @@
     "enabled": true,
     "timeout": 20
   },
+  "eol": "\n",
   "elasticsearch": {
     "enabled": true,
     "indexPattern": "keybase_$channelname$",
@@ -14,5 +15,9 @@
       "host": "localhost:9200",
       "log": "info"
     }
+  },
+  "jsonl": {
+    "enabled": false,
+    "file": "export.jsonl"
   }
 }
