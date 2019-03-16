@@ -64,9 +64,8 @@ function findChat (chats: ChatConversation[], query: string): ?ChatConversation 
   }
 }
 
-const indexPattern = 'keybase_$channelname$'
 function genEsIndexName (chat: ChatConversation) {
-  return indexPattern
+  return config.elasticsearch.indexPattern
     .replace('$channelname$', chat.channel.name)
 }
 
@@ -251,7 +250,6 @@ function watchChat (chat: ChatConversation): Promise<void> {
   console.log(`Watching for new messages: ${chat.channel.name}`)
   const storage = new MessageStorage(config.watcher.timeout)
   const onMessage = message => {
-    console.dir(message)
     console.log(`Watcher: new message (${message.id}): ${chat.channel.name}`)
     switch (message.content.type) {
       case 'edit':
