@@ -28,12 +28,12 @@ type Config = {
     //   "sessionFile": "keybase-export.session"
     // },
   elasticsearch: {|
-    enabled: boolean, // false is not supported currently
+    enabled: boolean,
     indexPattern: string,
     config: Object // ElasticSearch config
   |},
   jsonl: {|
-    enabled: boolean, // false is not supported currently
+    enabled: boolean,
     file: string
   |}
 }

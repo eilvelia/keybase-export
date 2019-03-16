@@ -6,6 +6,8 @@ import Bot from 'keybase-bot'
 import { Client as ElasticClient } from 'elasticsearch'
 import { warn, err, fatal } from './log'
 import { config } from './config'
+import { ExportClient } from './export'
+import { MessageStorage } from './message-storage'
 
 import type {
   ChatConversation,
@@ -18,12 +20,13 @@ import type {
   DeleteContent
 } from 'keybase-bot/lib/chat-client/types'
 
+import type { CleanedMessage } from './types'
+
 const debug = Debug('keybase-export')
 
 const bot = new Bot()
 
-const elasticClient = new ElasticClient(config.elasticsearch.config)
-const jsonlStream = fs.createWriteStream(config.jsonl.file)
+const exportClient = new ExportClient()
 
 const INIT_OPTIONS = {
   disableTyping: true
@@ -66,11 +69,6 @@ function findChat (chats: ChatConversation[], query: string): ?ChatConversation 
   }
 }
 
-function genEsIndexName (chat: ChatConversation) {
-  return config.elasticsearch.indexPattern
-    .replace('$channelname$', chat.channel.name)
-}
-
 export type ReadResult = {|
   messages: MessageSummary[],
   pagination: Pagination,
@@ -97,21 +95,6 @@ async function readWithPagination(
     pagination: res.pagination,
     messages: res.messages.map(message => message.msg),
   }
-}
-
-type CleanedMessage = {
-  id: number,
-  text?: string,
-  attachment?: {
-    path: string,
-    asset_type: number
-  },
-  sent_at: number,
-  sender_uid: string,
-  sender_username?: string,
-  device_id: string,
-  device_name?: string,
-  revoked_device?: boolean
 }
 
 function convertMessage (msg: MessageSummary): ?CleanedMessage {
@@ -174,89 +157,6 @@ async function* loadHistory (channel: ChatChannel) {
   console.log(`loadHistory end: ${channel.name} (${totalMessages} messages)`)
 }
 
-function saveChunkToJsonl (chat: ChatConversation, messages: CleanedMessage[]) {
-  const str = messages.map(m => JSON.stringify(m)).join(config.eol) + '\n'
-  return new Promise(resolve => {
-    jsonlStream.write(str, () => {
-      resolve()
-    })
-  })
-}
-
-async function saveChunkToEs (chat: ChatConversation, messages: CleanedMessage[]) {
-  const indexName = genEsIndexName(chat)
-  const preparedChunk: Object[] = messages.reduce((acc, msg) => {
-    acc.push({ index: { _id: msg.id.toString() } })
-    acc.push(msg)
-    return acc
-  }, [])
-  await elasticClient.bulk({
-    index: indexName,
-    type: '_doc',
-    body: preparedChunk
-  })
-}
-
-async function saveMessageToEs (chat: ChatConversation, msg: CleanedMessage) {
-  const indexName = genEsIndexName(chat)
-  await elasticClient.index({
-    index: indexName,
-    type: '_doc',
-    id: msg.id.toString(),
-    body: msg
-  })
-}
-
-/** Used in watcher for saving future editions & deletions */
-class MessageStorage {
-  +_map
-    : Map<number /* id */, {
-        msg: CleanedMessage,
-        timer: TimeoutID,
-        timerFn: (void => void)
-      }>
-    = new Map();
-  +_timeout: number // ms
-
-  constructor (timeout: number /* s */) {
-    this._timeout = timeout * 1000
-  }
-
-  /** NOTE: Instance can mutate `msg` */
-  add (msg: CleanedMessage, timerExpired: CleanedMessage => void) {
-    const timerFn = () => {
-      this._map.delete(msg.id)
-      timerExpired(msg)
-    }
-    const timer = setTimeout(timerFn, this._timeout)
-    this._map.set(msg.id, { msg, timer, timerFn })
-  }
-
-  edit (content: EditContent) {
-    const id: number = (content.edit: $FlowFixMe).messageId // TODO: Bug in keybase-bot
-    const value = this._map.get(id)
-    if (!value)
-      return debug(`edit: No msg with id ${id}`)
-    const { msg, timerFn } = value
-    msg.text = content.edit.body
-    clearTimeout(value.timer)
-    const timer = setTimeout(timerFn, this._timeout)
-    value.timer = timer
-  }
-
-  delete (content: DeleteContent) {
-    for (const id of content.delete.messageIDs) {
-      const value = this._map.get(id)
-      if (!value) {
-        debug(`delete: No msg with id ${id}`)
-        continue
-      }
-      clearTimeout(value.timer)
-      this._map.delete(id)
-    }
-  }
-}
-
 function watchChat (chat: ChatConversation): Promise<void> {
   console.log(`Watching for new messages: ${chat.channel.name}`)
   const storage = new MessageStorage(config.watcher.timeout)
@@ -272,7 +172,8 @@ function watchChat (chat: ChatConversation): Promise<void> {
         if (!cleanedMessage) return
         storage.add(cleanedMessage, msg => {
           debug('watchChat save', msg)
-          saveMessageToEs(chat, msg).catch(err)
+          exportClient.saveMessage(chat, msg)
+            .catch(err)
         })
     }
   }
@@ -290,8 +191,7 @@ async function processChat (chat: ChatConversation) {
     debug(`New chunk (${chunk.length}): ${chat.channel.name}`) // for time displaying
     console.log(`New chunk (${chunk.length}): ${chat.channel.name}`)
     const cleanedMessages = chunk.map(convertMessage).filter(Boolean)
-    await saveChunkToEs(chat, cleanedMessages)
-    await saveChunkToJsonl(chat, cleanedMessages)
+    await exportClient.saveChunk(chat, cleanedMessages)
     // console.dir(chunk.slice(-3), { depth: null })
   }
 }
@@ -335,7 +235,6 @@ function deinit (): Promise<void> {
     .catch(fatal)
 }
 
-elasticClient.ping({})
-  .catch(e => { throw new Error(`Elasticsearch is down: ${e}`) })
+exportClient.init()
   .then(() => main())
   .catch(fatal)
