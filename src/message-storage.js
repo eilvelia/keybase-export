@@ -13,6 +13,8 @@ const debug = Debug('keybase-export:message-storage')
 
 /* eslint-disable flowtype/space-before-type-colon */
 
+// TODO: Perhaps 'MessageStorage' is not a good name.
+
 /** Used in watcher for saving future editions & deletions */
 export class MessageStorage {
   +_map

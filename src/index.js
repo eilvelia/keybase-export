@@ -18,7 +18,6 @@ import type { CleanedMessage } from './types'
 const debug = Debug('keybase-export')
 
 const bot = new Bot()
-
 const exportClient = new ExportClient()
 
 const INIT_OPTIONS = {
@@ -28,14 +27,13 @@ const INIT_OPTIONS = {
 async function init () {
   const initConfig = config.init
   if (initConfig.type === 'initFromRunningService') {
-    debug('initFromRunningService start')
+    debug('init: initFromRunningService start')
     await bot.initFromRunningService()
-    debug('initFromRunningService end')
   } else {
-    debug('init start')
+    debug('init: init start')
     await bot.init(initConfig.username, initConfig.paperkey, INIT_OPTIONS)
-    debug('init end')
   }
+  debug('init: end')
 }
 
 function findChat (chats: ChatConversation[], query: string): ?ChatConversation {
@@ -200,5 +198,5 @@ function deinit (): Promise<void> {
 }
 
 exportClient.init()
-  .then(() => main())
+  .then(main)
   .catch(fatal)
