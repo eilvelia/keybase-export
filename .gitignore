@@ -7,5 +7,6 @@ dist/
 flow-typed/npm/
 yarn.lock
 config.json
+*.session
 /*.txt
 /*.jsonl

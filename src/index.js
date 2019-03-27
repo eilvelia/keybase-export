@@ -6,19 +6,20 @@ import { warn, err, fatal } from './log'
 import { config } from './config'
 import { ExportClient } from './export'
 import { MessageStorage } from './message-storage'
+import { createSession } from './session'
 
 import type {
   ChatConversation,
-  ChatChannel,
   MessageSummary
 } from 'keybase-bot/lib/chat-client/types'
-
 import type { CleanedMessage } from './types'
+import type { PaginationNext } from './session'
 
 const debug = Debug('keybase-export')
 
 const bot = new Bot()
 const exportClient = new ExportClient()
+const session = createSession()
 
 const INIT_OPTIONS = {
   disableTyping: true
@@ -98,10 +99,11 @@ function convertMessage (msg: MessageSummary): ?CleanedMessage {
 
 const CHUNK_SIZE = 900 // Shouldn't be more than ~950
 
-async function* loadHistory (channel: ChatChannel) {
+async function* loadHistory (chat: ChatConversation, lastNext?: PaginationNext) {
+  const { channel } = chat
   console.log(`loadHistory start: ${channel.name}`)
   let totalMessages = 0
-  let next = undefined
+  let next = lastNext
   while (true) {
     const { messages, pagination } = await bot.chat.read(channel, {
       peek: true,
@@ -112,6 +114,8 @@ async function* loadHistory (channel: ChatChannel) {
     })
     totalMessages += messages.length
     next = pagination.next
+    if (next)
+      session.update(chat.id, next)
     if (messages.length > 0)
       yield messages
     if (pagination.last)
@@ -150,7 +154,9 @@ async function processChat (chat: ChatConversation) {
   if (config.watcher.enabled)
     await watchChat(chat)
 
-  for await (const chunk of loadHistory(chat.channel)) {
+  const lastPagNext = session.get(chat.id)
+
+  for await (const chunk of loadHistory(chat, lastPagNext)) {
     debug(`New chunk (${chunk.length}): ${chat.channel.name}`) // for time displaying
     console.log(`New chunk (${chunk.length}): ${chat.channel.name}`)
     const cleanedMessages = chunk.map(convertMessage).filter(Boolean)
@@ -159,8 +165,6 @@ async function processChat (chat: ChatConversation) {
   }
 }
 
-// TODO: Incremental mode.
-
 async function main () {
   console.log('Initializing')
 
@@ -168,6 +172,8 @@ async function main () {
 
   process.on('SIGINT', deinit)
   process.on('SIGTERM', deinit)
+
+  await session.init()
 
   const { watcher } = config
 
@@ -191,8 +197,10 @@ async function main () {
     await deinit()
 }
 
-function deinit (): Promise<void> {
+async function deinit (): Promise<void> {
   console.log('deinit')
+  await session.forceSave()
+    .catch(fatal)
   return bot.deinit()
     .catch(fatal)
 }

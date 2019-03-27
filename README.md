@@ -8,7 +8,7 @@ A tool to export keybase chats.
 
 - [x] Configuration file
 - [x] Watcher
-- [ ] Incremental export
+- [x] Incremental export
 - [x] Saving to ElasticSearch
 - [x] Saving to [jsonl][] (json lines)
 - [ ] Saving to SQLite

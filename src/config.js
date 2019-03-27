@@ -19,14 +19,10 @@ type Config = {
     timeout: number // seconds
   |},
   eol: string,
-  // incremental: {|
-  //   enabled: boolean,
-  //   sessionFile: string
-  // |},
-    // "incremental": {
-    //   "enabled": true,
-    //   "sessionFile": "keybase-export.session"
-    // },
+  incremental: {|
+    enabled: boolean,
+    sessionFile: string
+  |},
   elasticsearch: {|
     enabled: boolean,
     indexPattern: string,
@@ -55,10 +51,10 @@ const schema = Joi.object().keys({
     timeout: Joi.number()
   }),
   eol: Joi.string(),
-  // incremental: Joi.object().keys({
-  //   enabled: Joi.boolean(),
-  //   sessionFile: Joi.string()
-  // }),
+  incremental: Joi.object().keys({
+    enabled: Joi.boolean(),
+    sessionFile: Joi.string()
+  }),
   elasticsearch: Joi.object().keys({
     enabled: Joi.boolean(),
     indexPattern: Joi.string(),

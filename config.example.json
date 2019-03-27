@@ -8,8 +8,12 @@
     "timeout": 20
   },
   "eol": "\n",
+  "incremental": {
+    "enabled": false,
+    "sessionFile": "keybase-export.session"
+  },
   "elasticsearch": {
-    "enabled": true,
+    "enabled": false,
     "indexPattern": "keybase_$channelname$",
     "config": {
       "host": "localhost:9200",
@@ -17,7 +21,7 @@
     }
   },
   "jsonl": {
-    "enabled": false,
+    "enabled": true,
     "file": "export.jsonl"
   }
 }
