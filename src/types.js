@@ -3,6 +3,7 @@
 export type CleanedMessage = {
   id: number,
   text?: string,
+  reply_to?: number,
   attachment?: {
     path: string,
     asset_type: number

@@ -65,7 +65,10 @@ function convertMessage (msg: MessageSummary): ?CleanedMessage {
 
   switch (msg.content.type) {
     case 'text':
-      output.text = msg.content.text.body
+      const { text } = msg.content
+      output.text = text.body
+      // $FlowFixMe: TODO: Update typings
+      output.reply_to = text.replyTo
       break
 
     case 'attachment':
