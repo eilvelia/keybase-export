@@ -19,6 +19,9 @@ type Config = {
     timeout: number // seconds
   |},
   eol: string,
+  attachments: {|
+    addStub: boolean // Adds '[Attachment <filename>]' to the caption
+  |},
   // incremental: {|
   //   enabled: boolean,
   //   sessionFile: string
@@ -59,6 +62,9 @@ const schema = Joi.object().keys({
   //   enabled: Joi.boolean(),
   //   sessionFile: Joi.string()
   // }),
+  attachments: Joi.object().keys({
+    addStub: Joi.boolean()
+  }),
   elasticsearch: Joi.object().keys({
     enabled: Joi.boolean(),
     indexPattern: Joi.string(),

@@ -10,7 +10,8 @@ import { MessageStorage } from './message-storage'
 import type {
   ChatConversation,
   ChatChannel,
-  MessageSummary
+  MessageSummary,
+  Asset
 } from 'keybase-bot/lib/chat-client/types'
 
 import type { CleanedMessage } from './types'
@@ -60,6 +61,12 @@ function findChat (chats: ChatConversation[], query: string): ?ChatConversation 
   }
 }
 
+function addAttachmentStub (object: Asset) {
+  if (!config.attachments.addStub) return object.title
+  const space = object.title === '' ? '' : ' '
+  return `[Attachment ${object.filename}]${space}${object.title}`
+}
+
 function convertMessage (msg: MessageSummary): ?CleanedMessage {
   const output = {}
 
@@ -79,7 +86,7 @@ function convertMessage (msg: MessageSummary): ?CleanedMessage {
         path: object.path,
         asset_type: object.metadata.assetType
       }
-      output.text = object.title
+      output.text = addAttachmentStub(object)
       break
 
     // TODO: Support reactions

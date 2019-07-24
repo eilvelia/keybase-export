@@ -8,6 +8,9 @@
     "timeout": 20
   },
   "eol": "\n",
+  "attachments": {
+    "addStub": true
+  },
   "elasticsearch": {
     "enabled": true,
     "indexPattern": "keybase_$channelname$",
