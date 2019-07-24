@@ -4,7 +4,7 @@ import Debug from 'debug'
 import Bot from 'keybase-bot'
 import { warn, err, fatal } from './log'
 import { config } from './config'
-import { ExportClient } from './export'
+import { Dumper } from './dump'
 import { MessageStorage } from './message-storage'
 
 import type {
@@ -18,7 +18,7 @@ import type { CleanedMessage } from './types'
 const debug = Debug('keybase-export')
 
 const bot = new Bot()
-const exportClient = new ExportClient()
+const dumper = new Dumper()
 
 const INIT_OPTIONS = {
   disableTyping: true
@@ -74,9 +74,10 @@ function convertMessage (msg: MessageSummary): ?CleanedMessage {
     case 'attachment':
       // TODO: Support attachment downloading
       const { attachment } = msg.content
+      const { object } = attachment
       output.attachment = {
-        path: attachment.object.path,
-        asset_type: attachment.object.metadata.assetType
+        path: object.path,
+        asset_type: object.metadata.assetType
       }
       break
 
@@ -138,7 +139,7 @@ function watchChat (chat: ChatConversation): Promise<void> {
         if (!cleanedMessage) return
         storage.add(cleanedMessage, msg => {
           debug('watchChat save', msg)
-          exportClient.saveMessage(chat, msg)
+          dumper.saveMessage(chat, msg)
             .catch(err)
         })
     }
@@ -157,7 +158,7 @@ async function processChat (chat: ChatConversation) {
     debug(`New chunk (${chunk.length}): ${chat.channel.name}`) // for time displaying
     console.log(`New chunk (${chunk.length}): ${chat.channel.name}`)
     const cleanedMessages = chunk.map(convertMessage).filter(Boolean)
-    await exportClient.saveChunk(chat, cleanedMessages)
+    await dumper.saveChunk(chat, cleanedMessages)
     // console.dir(chunk.slice(-3), { depth: null })
   }
 }
@@ -200,6 +201,6 @@ function deinit (): Promise<void> {
     .catch(fatal)
 }
 
-exportClient.init()
+dumper.init()
   .then(main)
   .catch(fatal)

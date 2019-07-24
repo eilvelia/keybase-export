@@ -6,7 +6,7 @@ import { config } from './config'
 import type { ChatConversation } from 'keybase-bot/lib/chat-client/types'
 import type { CleanedMessage } from './types'
 
-export interface IExportClient {
+export interface IDumper {
   init(): Promise<void>;
   saveMessage(chat: ChatConversation, msg: CleanedMessage): Promise<void>;
   saveChunk(chat: ChatConversation, msgs: CleanedMessage[]): Promise<void>;
@@ -17,7 +17,7 @@ function genEsIndexName (chat: ChatConversation) {
     .replace('$channelname$', chat.channel.name)
 }
 
-class ElasticExportClient implements IExportClient {
+class ElasticDumper implements IDumper {
   +_client = new EsClient(config.elasticsearch.config)
 
   async init () {
@@ -50,7 +50,7 @@ class ElasticExportClient implements IExportClient {
   }
 }
 
-class JsonlExportClient implements IExportClient {
+class JsonlDumper implements IDumper {
   +_stream = fs.createWriteStream(config.jsonl.file)
 
   _asyncWrite (str: string): Promise<void> {
@@ -74,15 +74,15 @@ class JsonlExportClient implements IExportClient {
   }
 }
 
-export class ExportClient implements IExportClient {
-  +_clients: IExportClient[] = []
+export class Dumper implements IDumper {
+  +_clients: IDumper[] = []
 
   constructor () {
     if (config.elasticsearch.enabled)
-      this._clients.push(new ElasticExportClient())
+      this._clients.push(new ElasticDumper())
 
     if (config.jsonl.enabled)
-      this._clients.push(new JsonlExportClient())
+      this._clients.push(new JsonlDumper())
   }
 
   async init () {
