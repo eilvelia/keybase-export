@@ -79,6 +79,7 @@ function convertMessage (msg: MessageSummary): ?CleanedMessage {
         path: object.path,
         asset_type: object.metadata.assetType
       }
+      output.text = object.title
       break
 
     // TODO: Support reactions
