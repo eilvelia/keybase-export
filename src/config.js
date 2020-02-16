@@ -1,7 +1,7 @@
 // @flow
 
 import fs from 'fs'
-import * as Joi from 'joi'
+import * as Joi from '@hapi/joi'
 // import { fatal } from './log'
 
 type Config = {
