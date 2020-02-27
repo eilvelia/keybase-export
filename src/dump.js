@@ -3,8 +3,9 @@
 import fs from 'fs'
 import { Client as EsClient } from 'elasticsearch'
 import { config } from './config'
-import type { ChatConversation } from 'keybase-bot/lib/chat-client/types'
 import type { CleanedMessage } from './types'
+
+type ChatConversation = any
 
 export interface IDumper {
   init(): Promise<void>;

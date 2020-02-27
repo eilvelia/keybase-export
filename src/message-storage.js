@@ -2,12 +2,10 @@
 
 import Debug from 'debug'
 
-import type {
-  EditContent,
-  DeleteContent
-} from 'keybase-bot/lib/chat-client/types'
-
 import type { CleanedMessage } from './types'
+
+type EditContent = any
+type DeleteContent = any
 
 const debug = Debug('keybase-export:message-storage')
 
