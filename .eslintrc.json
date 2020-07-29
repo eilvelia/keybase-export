@@ -1,15 +1,18 @@
 {
-  "parser": "babel-eslint",
-  "env": {
-    "browser": false,
-    "node": true,
-    "es6": true
-  },
+  "parser": "@typescript-eslint/parser",
+  "plugins": [
+    "@typescript-eslint"
+  ],
   "extends": [
-    "@bannerets/eslint-config-flow"
+    "@bannerets/eslint-config",
+    "plugin:@typescript-eslint/recommended"
   ],
   "rules": {
     "valid-jsdoc": 0,
-    "brace-style": 0
+    "brace-style": 0,
+    "camelcase": 0,
+    "@typescript-eslint/no-explicit-any": 0,
+    "@typescript-eslint/explicit-module-boundary-types": 0,
+    "@typescript-eslint/no-empty-function": 0
   }
 }

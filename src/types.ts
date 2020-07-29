@@ -1,12 +1,10 @@
-// @flow
-
 export type CleanedMessage = {
   id: number,
   text?: string,
   reply_to?: number,
   attachment?: {
     path: string,
-    asset_type: number
+    asset_type: string
   },
   sent_at: number,
   sender_uid: string,

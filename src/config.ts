@@ -1,27 +1,25 @@
-// @flow
-
 import fs from 'fs'
 import * as Joi from '@hapi/joi'
 // import { fatal } from './log'
 
 type Config = {
   chats: string[],
-  init: {|
+  init: {
     type: 'init',
     username: string,
     paperkey: string
-  |} | {|
+  } | {
     // NOTE: With this setting watcher doesn't collect user's own messages
     type: 'initFromRunningService'
-  |},
-  watcher: {|
+  },
+  watcher: {
     enabled: boolean,
     timeout: number // seconds
-  |},
+  },
   eol: string,
-  attachments: {|
+  attachments: {
     addStub: boolean // Adds '[Attachment <filename>]' to the caption
-  |},
+  },
   // incremental: {|
   //   enabled: boolean,
   //   sessionFile: string
@@ -30,15 +28,15 @@ type Config = {
     //   "enabled": true,
     //   "sessionFile": "keybase-export.session"
     // },
-  elasticsearch: {|
+  elasticsearch: {
     enabled: boolean,
     indexPattern: string,
-    config: Object // ElasticSearch config
-  |},
-  jsonl: {|
+    config: Record<string, any> // ElasticSearch config
+  },
+  jsonl: {
     enabled: boolean,
     file: string
-  |}
+  }
 }
 
 const schema = Joi.object().keys({
@@ -81,8 +79,8 @@ const configPath = process.argv[2] || 'config.json'
 
 const untrustedConfig = JSON.parse(fs.readFileSync(configPath).toString())
 
-const result = Joi.validate((untrustedConfig: Config), schema)
+const result = Joi.validate(untrustedConfig, schema)
 
 if (result.error) throw result.error
 
-export const config = result.value
+export const config: Config = result.value

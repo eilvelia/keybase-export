@@ -1,5 +1,3 @@
-// @flow
-
 import Debug from 'debug'
 import Bot from 'keybase-bot'
 import { warn, err, fatal } from './log'
@@ -7,12 +5,9 @@ import { config } from './config'
 import { Dumper } from './dump'
 import { MessageStorage } from './message-storage'
 
+import type * as chat1 from 'keybase-bot/lib/types/chat1'
+import type { ReadResult, OnMessage, OnError } from 'keybase-bot/lib/chat-client'
 import type { CleanedMessage } from './types'
-
-type ChatConversation = any
-type ChatChannel = any
-type MessageSummary = any
-type Asset = any
 
 const debug = Debug('keybase-export')
 
@@ -35,7 +30,7 @@ async function init () {
   debug('init: end')
 }
 
-function findChat (chats: ChatConversation[], query: string): ?ChatConversation {
+function findChat (chats: chat1.ConvSummary[], query: string): chat1.ConvSummary | undefined {
   // Query string examples:
   //   - you,them
   //   - $id$0000f0b5c2c2211c8d67ed15e75e656c7862d086e9245420892a7de62cd9ec58
@@ -59,26 +54,37 @@ function findChat (chats: ChatConversation[], query: string): ?ChatConversation 
   }
 }
 
-function addAttachmentStub (object: Asset) {
+function addAttachmentStub (object: chat1.Asset): string {
   if (!config.attachments.addStub) return object.title
   const space = object.title === '' ? '' : ' '
   return `[Attachment ${object.filename}]${space}${object.title}`
 }
 
-function convertMessage (msg: MessageSummary): ?CleanedMessage {
-  const output = {}
+function convertMessage (msg: chat1.MsgSummary): CleanedMessage | null {
+  const output: CleanedMessage = {
+    id: msg.id,
+    sent_at: msg.sentAt,
+    sender_uid: msg.sender.uid,
+    sender_username: msg.sender.username,
+    device_id: msg.sender.deviceId,
+    device_name: msg.sender.deviceName,
+    revoked_device: msg.revokedDevice
+  }
 
-  switch (msg.content.type) {
+  const { content } = msg
+
+  switch (content.type) {
     case 'text':
-      const { text } = msg.content
+      if (!content.text) break
+      const { text } = content
       output.text = text.body
-      // $FlowFixMe: TODO: Update typings
       output.reply_to = text.replyTo
       break
 
     case 'attachment':
       // TODO: Support attachment downloading
-      const { attachment } = msg.content
+      if (!content.attachment) break
+      const { attachment } = content
       const { object } = attachment
       output.attachment = {
         path: object.path,
@@ -95,25 +101,17 @@ function convertMessage (msg: MessageSummary): ?CleanedMessage {
     case 'delete': return null
   }
 
-  output.id = msg.id
-  output.sent_at = msg.sentAt
-  output.sender_uid = msg.sender.uid
-  output.sender_username = msg.sender.username
-  output.device_id = msg.sender.deviceId
-  output.device_name = msg.sender.deviceName
-  output.revoked_device = msg.revokedDevice
-
   return output
 }
 
 const CHUNK_SIZE = 900 // Shouldn't be more than ~950
 
-async function* loadHistory (channel: ChatChannel) {
+async function* loadHistory (channel: chat1.ChatChannel) {
   console.log(`loadHistory start: ${channel.name}`)
   let totalMessages = 0
   let next = undefined
   while (true) {
-    const { messages, pagination } = await bot.chat.read(channel, {
+    const { messages, pagination }: ReadResult = await bot.chat.read(channel, {
       peek: true,
       pagination: {
         num: CHUNK_SIZE,
@@ -130,16 +128,19 @@ async function* loadHistory (channel: ChatChannel) {
   console.log(`loadHistory end: ${channel.name} (${totalMessages} messages)`)
 }
 
-function watchChat (chat: ChatConversation): Promise<void> {
+function watchChat (chat: chat1.ConvSummary): Promise<void> {
   console.log(`Watching for new messages: ${chat.channel.name}`)
   const storage = new MessageStorage(config.watcher.timeout)
-  const onMessage = message => {
+  const onMessage: OnMessage = message => {
     console.log(`Watcher: new message (${message.id}): ${chat.channel.name}`)
-    switch (message.content.type) {
+    const { content } = message
+    switch (content.type) {
       case 'edit':
-        return storage.edit(message.content)
+        if (content.edit) storage.edit(content.edit)
+        return
       case 'delete':
-        return storage.delete(message.content)
+        if (content.delete) storage.delete(content.delete)
+        return
       default:
         const cleanedMessage = convertMessage(message)
         if (!cleanedMessage) return
@@ -150,20 +151,22 @@ function watchChat (chat: ChatConversation): Promise<void> {
         })
     }
   }
-  const onError = error => {
+  const onError: OnError = error => {
     err(error)
   }
   return bot.chat.watchChannelForNewMessages(chat.channel, onMessage, onError)
 }
 
-async function processChat (chat: ChatConversation) {
+async function processChat (chat: chat1.ConvSummary) {
   if (config.watcher.enabled)
     await watchChat(chat)
 
   for await (const chunk of loadHistory(chat.channel)) {
     debug(`New chunk (${chunk.length}): ${chat.channel.name}`) // for time displaying
     console.log(`New chunk (${chunk.length}): ${chat.channel.name}`)
-    const cleanedMessages = chunk.map(convertMessage).filter(Boolean)
+    const cleanedMessages = chunk
+      .map(convertMessage)
+      .filter((x): x is CleanedMessage => x != null)
     await dumper.saveChunk(chat, cleanedMessages)
     // console.dir(chunk.slice(-3), { depth: null })
   }
