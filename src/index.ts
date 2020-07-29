@@ -33,11 +33,19 @@ async function init () {
 function findChat (chats: chat1.ConvSummary[], query: string): chat1.ConvSummary | undefined {
   // Query string examples:
   //   - you,them
+  //   - family#general
   //   - $id$0000f0b5c2c2211c8d67ed15e75e656c7862d086e9245420892a7de62cd9ec58
 
   const specialMode = query.match(/^\$(.+?)\$(.+)/)
 
   if (!specialMode) {
+    const [teamName, channelName] = query.split('#')
+    if (channelName) {
+      // Search by channel/topic of a big team
+      return chats.find(({ channel }) =>
+        channel.name === teamName && channel.topicName === channelName)
+    }
+
     // Search by channel name (like `you,them`)
     return chats.find(chat => chat.channel.name === query)
   }
@@ -193,7 +201,7 @@ async function main () {
   console.log('Getting chat list')
   const chats = await bot.chat.list()
   console.log(`Total chats: ${chats.length}`)
-  // debug('Chat list', chats)
+  // debug('Chat list', chats); return deinit()
 
   for (const query of config.chats) {
     const chat = findChat(chats, query)
