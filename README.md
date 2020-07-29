@@ -18,10 +18,10 @@ A tool to export keybase chats.
 
 ### Config
 
-See [config.example.json][] for example and [config.js][] for config schema.
+See [config.example.json][] for example and [config.ts][] for config schema.
 
 [config.example.json]: config.example.json
-[config.js]: src/config.js
+[config.ts]: src/config.ts
 
 ### Installation
 
