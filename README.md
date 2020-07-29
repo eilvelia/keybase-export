@@ -9,9 +9,9 @@ A tool to export keybase chats.
 - [x] Configuration file
 - [x] Watcher
 - [ ] Incremental export
-- [x] Saving to ElasticSearch
-- [x] Saving to [jsonl][] (json lines)
-- [ ] Saving to SQLite
+- [x] Export to ElasticSearch
+- [x] Export to [jsonl][] (json lines)
+- [ ] Export to SQLite
 - [ ] Attachment downloading
 
 [jsonl]: http://jsonlines.org/
@@ -47,7 +47,7 @@ npm run build
 
 ### Run
 
-1. Copy `config.example.json` to `config.json`
+1. Copy `config.example.json` to `config.json` and edit it.
 2. `$ ./bin/keybase-export` or `$ node dist`
 
 ```console

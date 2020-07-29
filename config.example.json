@@ -4,7 +4,7 @@
     "type": "initFromRunningService"
   },
   "watcher": {
-    "enabled": true,
+    "enabled": false,
     "timeout": 20
   },
   "eol": "\n",
@@ -12,7 +12,7 @@
     "addStub": true
   },
   "elasticsearch": {
-    "enabled": true,
+    "enabled": false,
     "indexPattern": "keybase_$channelname$",
     "config": {
       "host": "localhost:9200",
@@ -20,7 +20,7 @@
     }
   },
   "jsonl": {
-    "enabled": false,
+    "enabled": true,
     "file": "export.jsonl"
   }
 }
