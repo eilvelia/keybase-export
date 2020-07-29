@@ -7,14 +7,12 @@ import { config } from './config'
 import { Dumper } from './dump'
 import { MessageStorage } from './message-storage'
 
-import type {
-  ChatConversation,
-  ChatChannel,
-  MessageSummary,
-  Asset
-} from 'keybase-bot/lib/chat-client/types'
-
 import type { CleanedMessage } from './types'
+
+type ChatConversation = any
+type ChatChannel = any
+type MessageSummary = any
+type Asset = any
 
 const debug = Debug('keybase-export')
 

@@ -26,7 +26,7 @@
     "@hapi/joi": "^14.5.0",
     "debug": "^3.2.6",
     "elasticsearch": "^15.3.1",
-    "keybase-bot": "^2.0.4"
+    "keybase-bot": "^3.6.1"
   },
   "devDependencies": {
     "@babel/cli": "^7.1.5",
