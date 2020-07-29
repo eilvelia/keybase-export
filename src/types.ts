@@ -1,6 +1,6 @@
 export type CleanedMessage = {
-  id: number,
   text?: string,
+  id: number,
   reply_to?: number,
   attachment?: {
     path: string,

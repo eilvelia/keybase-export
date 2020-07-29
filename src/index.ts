@@ -62,7 +62,10 @@ function addAttachmentStub (object: chat1.Asset): string {
 
 function convertMessage (msg: chat1.MsgSummary): CleanedMessage | null {
   const output: CleanedMessage = {
+    text: undefined,
     id: msg.id,
+    reply_to: undefined,
+    attachment: undefined,
     sent_at: msg.sentAt,
     sender_uid: msg.sender.uid,
     sender_username: msg.sender.username,
