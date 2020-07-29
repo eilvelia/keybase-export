@@ -1,5 +1,5 @@
 import fs from 'fs'
-import * as Joi from '@hapi/joi'
+import Joi from '@hapi/joi'
 // import { fatal } from './log'
 
 type Config = {
@@ -79,7 +79,7 @@ const configPath = process.argv[2] || 'config.json'
 
 const untrustedConfig = JSON.parse(fs.readFileSync(configPath).toString())
 
-const result = Joi.validate(untrustedConfig, schema)
+const result = schema.validate(untrustedConfig)
 
 if (result.error) throw result.error
 
