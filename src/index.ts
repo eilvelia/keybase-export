@@ -115,7 +115,9 @@ function convertMessage (msg: chat1.MsgSummary): CleanedMessage | null {
   return output
 }
 
-const CHUNK_SIZE = 900 // Shouldn't be more than ~950
+// Shouldn't be more than ~950
+// UPD: Changed from 900 to 300, didn't work correctly
+const CHUNK_SIZE = 300
 
 async function* loadHistory (channel: chat1.ChatChannel) {
   console.log(`loadHistory start: ${channel.name}`)
