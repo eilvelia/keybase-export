@@ -1,7 +1,9 @@
 {
   "chats": ["you", "you,them"],
   "init": {
-    "type": "initFromRunningService"
+    "type": "init",
+    "username": "yourusername",
+    "paperkey": "enter your paper key"
   },
   "watcher": {
     "enabled": false,
