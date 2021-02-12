@@ -3,7 +3,7 @@ import Bot from 'keybase-bot'
 import { warn, err, fatal } from './log'
 import { config } from './config'
 import { Dumper } from './dump'
-import { MessageStorage } from './message-storage'
+import { WatcherStorage, AlterationStorage } from './message-storage'
 
 import type * as chat1 from 'keybase-bot/lib/types/chat1'
 import type { ReadResult, OnMessage, OnError } from 'keybase-bot/lib/chat-client'
@@ -58,7 +58,6 @@ function findChat (chats: chat1.ConvSummary[], query: string): chat1.ConvSummary
       return chats.find(chat => chat.id === value)
     default:
       warn(`Unknown mode '${mode}'`)
-      return undefined
   }
 }
 
@@ -68,19 +67,44 @@ function addAttachmentStub (object: chat1.Asset): string {
   return `[Attachment ${object.filename}]${space}${object.title}`
 }
 
-function convertMessage (msg: chat1.MsgSummary): CleanedMessage | null {
+function convertMessage (msg: chat1.MsgSummary, storage?: AlterationStorage): CleanedMessage | null {
+  const alter = storage?.get(msg.id)
+
+  if (alter?.type === 'deleted') {
+    warn(`Message ${msg.id} is deleted`)
+    return null
+  }
+
+  let text
+  let edited
+  let device_id
+  let device_name
+
+  if (alter?.type === 'edited') {
+    edited = true as const
+    text = alter.text
+    device_id = alter.device_id
+    device_name = alter.device_name
+  } else {
+    device_id = msg.sender.deviceId
+    device_name = msg.sender.deviceName
+  }
+
   const output: CleanedMessage = {
-    text: undefined,
+    text,
     id: msg.id,
     reply_to: undefined,
     attachment: undefined,
     sent_at: msg.sentAt,
-    sender_uid: msg.sender.uid,
+    sent_at_ms: msg.sentAtMs,
+    edited,
     sender_username: msg.sender.username,
-    device_id: msg.sender.deviceId,
-    device_name: msg.sender.deviceName,
-    revoked_device: msg.revokedDevice
+    sender_uid: msg.sender.uid,
+    device_id,
+    device_name,
   }
+
+  // Note: The jsonl dumper also adds a 'channel_name' field
 
   const { content } = msg
 
@@ -88,7 +112,7 @@ function convertMessage (msg: chat1.MsgSummary): CleanedMessage | null {
     case 'text':
       if (!content.text) break
       const { text } = content
-      output.text = text.body
+      if (output.text == null) output.text = text.body
       output.reply_to = text.replyTo
       break
 
@@ -107,16 +131,20 @@ function convertMessage (msg: chat1.MsgSummary): CleanedMessage | null {
     // TODO: Support reactions
     case 'reaction': return null
 
-    // Skip 'edit' and 'delete' messages
-    case 'edit': return null
-    case 'delete': return null
+    case 'edit':
+      storage?.edit(msg)
+      return null
+
+    case 'delete':
+      storage?.delete(msg)
+      return null
   }
 
   return output
 }
 
 // Shouldn't be more than ~950
-// UPD: Changed from 900 to 300, didn't work correctly
+// UPD: Changed from 900 to 300, 900 stopped working correctly
 const CHUNK_SIZE = 300
 
 async function* loadHistory (channel: chat1.ChatChannel) {
@@ -143,18 +171,19 @@ async function* loadHistory (channel: chat1.ChatChannel) {
 
 function watchChat (chat: chat1.ConvSummary): Promise<void> {
   console.log(`Watching for new messages: ${chat.channel.name}`)
-  const storage = new MessageStorage(config.watcher.timeout)
+  const storage = new WatcherStorage(config.watcher.timeout)
   const onMessage: OnMessage = message => {
     console.log(`Watcher: new message (${message.id}): ${chat.channel.name}`)
     const { content } = message
     switch (content.type) {
       case 'edit':
-        if (content.edit) storage.edit(content.edit)
+        if (content.edit) storage.edit(content.edit, message.sender)
         return
       case 'delete':
         if (content.delete) storage.delete(content.delete)
         return
       default:
+        // Since we enumerate messages from oldes to newest, the alter storage should be empty
         const cleanedMessage = convertMessage(message)
         if (!cleanedMessage) return
         storage.add(cleanedMessage, msg => {
@@ -174,11 +203,13 @@ async function processChat (chat: chat1.ConvSummary) {
   if (config.watcher.enabled)
     await watchChat(chat)
 
+  const alterStorage = new AlterationStorage()
+
   for await (const chunk of loadHistory(chat.channel)) {
     debug(`New chunk (${chunk.length}): ${chat.channel.name}`) // for time displaying
     console.log(`New chunk (${chunk.length}): ${chat.channel.name}`)
     const cleanedMessages = chunk
-      .map(convertMessage)
+      .map(msg => convertMessage(msg, alterStorage))
       .filter((x): x is CleanedMessage => x != null)
     await dumper.saveChunk(chat, cleanedMessages)
     // console.dir(chunk.slice(-3), { depth: null })

@@ -52,7 +52,7 @@ class ElasticDumper implements IDumper {
 class JsonlDumper implements IDumper {
   private readonly stream = fs.createWriteStream(config.jsonl.file)
 
-  _asyncWrite (str: string): Promise<void> {
+  private asyncWrite (str: string): Promise<void> {
     return new Promise(resolve => {
       this.stream.write(str, () => {
         resolve()
@@ -60,16 +60,20 @@ class JsonlDumper implements IDumper {
     })
   }
 
+  private stringify (chat: chat1.ConvSummary, msg: CleanedMessage): string {
+    return JSON.stringify({ ...msg, channel_name: chat.channel.name })
+  }
+
   async init () {}
 
   saveMessage (chat: chat1.ConvSummary, msg: CleanedMessage) {
-    const str = JSON.stringify(msg) + config.eol
-    return this._asyncWrite(str)
+    const str = this.stringify(chat, msg) + config.eol
+    return this.asyncWrite(str)
   }
 
   saveChunk (chat: chat1.ConvSummary, msgs: CleanedMessage[]) {
-    const str = msgs.map(m => JSON.stringify(m)).join(config.eol) + config.eol
-    return this._asyncWrite(str)
+    const str = msgs.map(m => this.stringify(chat, m)).join(config.eol) + config.eol
+    return this.asyncWrite(str)
   }
 }
 

@@ -9,7 +9,7 @@ export type Config = {
     username: string,
     paperkey: string
   } | {
-    // NOTE: With this setting the watcher doesn't collect user's own messages
+    // NOTE: With this option the watcher doesn't collect user's own messages
     type: 'initFromRunningService'
   },
   watcher: {

@@ -7,9 +7,10 @@ export type CleanedMessage = {
     asset_type: string
   },
   sent_at: number,
-  sender_uid: string,
+  sent_at_ms: number,
+  edited?: true,
   sender_username?: string,
+  sender_uid: string,
   device_id: string,
   device_name?: string,
-  revoked_device?: boolean
 }

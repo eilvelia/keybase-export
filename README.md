@@ -7,32 +7,34 @@ A tool to export keybase chats.
 ### Features
 
 - [x] Configuration file
-- [x] Watcher
-- [ ] Incremental export
-- [x] Export to ElasticSearch
 - [x] Export to [jsonl][] (json lines)
 - [ ] Export to SQLite
+- [x] Export to ElasticSearch
+- [x] Watcher for new messages
+- [ ] Incremental export
 - [ ] Attachment downloading
 
 [jsonl]: http://jsonlines.org/
 
 ### Config
 
-See [config.example.json][] for example and [config.ts][] for config schema.
+See [config.example.json][] for a config example and [config.ts][] for the config schema.
 
 [config.example.json]: config.example.json
 [config.ts]: src/config.ts
 
-### Installation
+### Usage
 
-Via npm:
+Node.js v6.0.0+ is required.
+
+Install `keybase-export` via npm:
 
 ```sh
-npm install keybase-export
-# global installation: $ npm install -g keybase-export
+npm install -g keybase-export
+# local installation: $ npm install keybase-export
 ```
 
-Or clone from GitHub:
+Or clone it from GitHub (recommended):
 
 ```sh
 git clone https://github.com/Bannerets/keybase-export.git
@@ -41,17 +43,14 @@ npm install
 npm run build
 ```
 
-#### Requirements
+Copy `config.example.json` to `config.json` and edit it.
 
-- Node.js v6.0.0+
-
-### Run
-
-1. Copy `config.example.json` to `config.json` and edit it.
-2. `$ ./bin/keybase-export` or `$ node dist`
+Run:
 
 ```console
 $ keybase-export [path/to/config]
 ```
 
-Debug mode: `DEBUG=keybase-export* ./bin/keybase-export`
+(`$ ./bin/keybase-export` or `$ node dist` if you only cloned the repository)
+
+Debug mode: `DEBUG=keybase-export* keybase-export`
