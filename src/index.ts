@@ -4,6 +4,7 @@ import { warn, err, fatal } from './log'
 import { config } from './config'
 import { Dumper } from './dump'
 import { WatcherStorage, AlterationStorage } from './message-storage'
+import { convertSystemMessage } from './system-message'
 
 import type * as chat1 from 'keybase-bot/lib/types/chat1'
 import type { ReadResult, OnMessage, OnError } from 'keybase-bot/lib/chat-client'
@@ -28,6 +29,12 @@ async function init () {
     await bot.init(initConfig.username, initConfig.paperkey, INIT_OPTIONS)
   }
   debug('init: end')
+}
+
+function getChannelName (channel: chat1.ChatChannel) {
+  return channel.topicName
+    ? channel.name + '#' + channel.topicName
+    : channel.name
 }
 
 function findChat (chats: chat1.ConvSummary[], query: string): chat1.ConvSummary | undefined {
@@ -94,6 +101,7 @@ function convertMessage (msg: chat1.MsgSummary, storage?: AlterationStorage): Cl
   const output: CleanedMessage = {
     text,
     id: msg.id,
+    reactions: undefined,
     reply_to: undefined,
     attachment: undefined,
     sent_at: msg.sentAt,
@@ -103,7 +111,12 @@ function convertMessage (msg: chat1.MsgSummary, storage?: AlterationStorage): Cl
     sender_uid: msg.sender.uid,
     device_id,
     device_name,
+    system: undefined,
+    special: undefined,
   }
+
+  if (config.messageTypes.reactions && msg.reactions)
+    output.reactions = msg.reactions.reactions
 
   // Note: The jsonl dumper also adds a 'channel_name' field
 
@@ -129,8 +142,30 @@ function convertMessage (msg: chat1.MsgSummary, storage?: AlterationStorage): Cl
       output.text = addAttachmentStub(object)
       break
 
-    // TODO: Support reactions
-    case 'reaction': return null
+    case 'reaction':
+      if (!config.messageTypes.reactionMessages) return null
+      const { reaction } = content
+      if (!reaction) break
+      output.text = `[Reaction '${reaction.b}' to msg id ${reaction.m}]`
+      output.special = true
+      break
+
+    case 'system':
+      if (!config.messageTypes.systemMessages) return null
+      const { system } = content
+      if (!system) break
+      output.text = `[${convertSystemMessage(system)}]`
+      output.system = true
+      output.special = true
+      break
+
+    case 'headline':
+      if (!config.messageTypes.headline) return null
+      const { headline } = content
+      if (!headline) break
+      output.text = `[New headline: "${headline.headline}"]`
+      output.special = true
+      break
 
     case 'edit':
       storage?.edit(msg)
@@ -149,7 +184,8 @@ function convertMessage (msg: chat1.MsgSummary, storage?: AlterationStorage): Cl
 const CHUNK_SIZE = 300
 
 async function* loadHistory (channel: chat1.ChatChannel) {
-  console.log(`Started loading messages: ${channel.name}`)
+  const channelName = getChannelName(channel)
+  console.log(`Started loading messages: ${channelName}`)
   let totalMessages = 0
   let next = undefined
   while (true) {
@@ -167,14 +203,15 @@ async function* loadHistory (channel: chat1.ChatChannel) {
     if (pagination.last)
       break
   }
-  console.log(`Finished loading messages: ${channel.name} (total of ${totalMessages} messages / events)`)
+  console.log(`Finished loading messages: ${channelName} (total of ${totalMessages} messages / events)`)
 }
 
 function watchChat (chat: chat1.ConvSummary): Promise<void> {
-  console.log(`Watching for new messages: ${chat.channel.name}`)
+  const channelName = getChannelName(chat.channel)
+  console.log(`Watching for new messages: ${channelName}`)
   const storage = new WatcherStorage(config.watcher.timeout)
   const onMessage: OnMessage = message => {
-    console.log(`Watcher: new message (${message.id}): ${chat.channel.name}`)
+    console.log(`Watcher: new message (${message.id}): ${channelName}`)
     const { content } = message
     switch (content.type) {
       case 'edit':
@@ -189,7 +226,7 @@ function watchChat (chat: chat1.ConvSummary): Promise<void> {
         if (!cleanedMessage) return
         storage.add(cleanedMessage, msg => {
           debug('watchChat save', msg)
-          dumper.saveMessage(chat, msg)
+          dumper.saveMessage(channelName, msg)
             .catch(err)
         })
     }
@@ -206,13 +243,15 @@ async function processChat (chat: chat1.ConvSummary) {
 
   const alterStorage = new AlterationStorage()
 
+  const channelName = getChannelName(chat.channel)
+
   for await (const chunk of loadHistory(chat.channel)) {
-    debug(`Chunk (${chunk.length}): ${chat.channel.name}`) // for time displaying
-    console.log(`Received new chunk (${chunk.length} msgs): ${chat.channel.name}`)
+    debug(`Chunk (${chunk.length}): ${channelName}`) // for time displaying
+    console.log(`Received new chunk (${chunk.length} msgs): ${channelName}`)
     const cleanedMessages = chunk
       .map(msg => convertMessage(msg, alterStorage))
       .filter((x): x is CleanedMessage => x != null)
-    await dumper.saveChunk(chat, cleanedMessages)
+    await dumper.saveChunk(channelName, cleanedMessages)
     // console.dir(chunk.slice(-3), { depth: null })
   }
 }

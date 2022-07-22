@@ -32,6 +32,12 @@ export type Config = {
   //   enabled: boolean,
   //   sessionFile: string // like "keybase-export.session"
   // },
+  messageTypes: {
+    reactions: boolean,
+    reactionMessages: boolean,
+    systemMessages: boolean,
+    headline: boolean
+  },
   jsonl: {
     enabled: boolean,
     file: string
@@ -64,6 +70,12 @@ const schema = Joi.object({
   //   enabled: Joi.boolean(),
   //   sessionFile: Joi.string()
   // }),
+  messageTypes: Joi.object({
+    reactions: Joi.boolean().default(true),
+    reactionMessages: Joi.boolean().default(true),
+    systemMessages: Joi.boolean().default(true),
+    headline: Joi.boolean().default(true)
+  }).default(),
   attachments: Joi.object({
     addStub: Joi.boolean().default(true)
   }).default(),

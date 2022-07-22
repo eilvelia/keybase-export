@@ -12,6 +12,12 @@
   "attachments": {
     "addStub": true
   },
+  "messageTypes": {
+    "reactions": true,
+    "reactionMessages": true,
+    "systemMessages": true,
+    "headline": true
+  },
   "jsonl": {
     "enabled": true,
     "file": "export.jsonl"

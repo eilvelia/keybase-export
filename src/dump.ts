@@ -3,17 +3,15 @@ import { Client as EsClient } from 'elasticsearch'
 import { config } from './config'
 import type { CleanedMessage } from './types'
 
-import type * as chat1 from 'keybase-bot/lib/types/chat1'
-
 export interface IDumper {
   init(): Promise<void>;
-  saveMessage(chat: chat1.ConvSummary, msg: CleanedMessage): Promise<void>;
-  saveChunk(chat: chat1.ConvSummary, msgs: CleanedMessage[]): Promise<void>;
+  saveMessage(channelName: string, msg: CleanedMessage): Promise<void>;
+  saveChunk(channelName: string, msgs: CleanedMessage[]): Promise<void>;
 }
 
-function genEsIndexName (chat: chat1.ConvSummary) {
+function genEsIndexName (channelName: string) {
   return config.elasticsearch.indexPattern
-    .replace('$channelname$', chat.channel.name)
+    .replace('$channelname$', channelName.replace('#', '__'))
 }
 
 class ElasticDumper implements IDumper {
@@ -24,8 +22,8 @@ class ElasticDumper implements IDumper {
       .catch((e: any) => { throw new Error(`Elasticsearch is down: ${e}`) })
   }
 
-  async saveMessage (chat: chat1.ConvSummary, msg: CleanedMessage) {
-    const indexName = genEsIndexName(chat)
+  async saveMessage (channelName: string, msg: CleanedMessage) {
+    const indexName = genEsIndexName(channelName)
     await this.client.index({
       index: indexName,
       type: '_doc',
@@ -34,8 +32,8 @@ class ElasticDumper implements IDumper {
     })
   }
 
-  async saveChunk (chat: chat1.ConvSummary, msgs: CleanedMessage[]) {
-    const indexName = genEsIndexName(chat)
+  async saveChunk (channelName: string, msgs: CleanedMessage[]) {
+    const indexName = genEsIndexName(channelName)
     const preparedChunk = msgs.reduce((acc, msg) => {
       acc.push({ index: { _id: msg.id.toString() } })
       acc.push(msg)
@@ -60,22 +58,19 @@ class JsonlDumper implements IDumper {
     })
   }
 
-  private stringify (chat: chat1.ConvSummary, msg: CleanedMessage): string {
-    const name = chat.channel.topicName
-      ? chat.channel.name + '#' + chat.channel.topicName
-      : chat.channel.name
-    return JSON.stringify({ ...msg, channel_name: name })
+  private stringify (channelName: string, msg: CleanedMessage): string {
+    return JSON.stringify({ ...msg, channel_name: channelName })
   }
 
   async init () {}
 
-  saveMessage (chat: chat1.ConvSummary, msg: CleanedMessage) {
-    const str = this.stringify(chat, msg) + config.eol
+  saveMessage (channelName: string, msg: CleanedMessage) {
+    const str = this.stringify(channelName, msg) + config.eol
     return this.asyncWrite(str)
   }
 
-  saveChunk (chat: chat1.ConvSummary, msgs: CleanedMessage[]) {
-    const str = msgs.map(m => this.stringify(chat, m)).join(config.eol) + config.eol
+  saveChunk (channelName: string, msgs: CleanedMessage[]) {
+    const str = msgs.map(m => this.stringify(channelName, m)).join(config.eol) + config.eol
     return this.asyncWrite(str)
   }
 }
@@ -96,13 +91,13 @@ export class Dumper implements IDumper {
       this.clients.map(cl => cl.init()))
   }
 
-  async saveMessage (chat: chat1.ConvSummary, msg: CleanedMessage) {
+  async saveMessage (channelName: string, msg: CleanedMessage) {
     await Promise.all(
-      this.clients.map(cl => cl.saveMessage(chat, msg)))
+      this.clients.map(cl => cl.saveMessage(channelName, msg)))
   }
 
-  async saveChunk (chat: chat1.ConvSummary, msgs: CleanedMessage[]) {
+  async saveChunk (channelName: string, msgs: CleanedMessage[]) {
     await Promise.all(
-      this.clients.map(cl => cl.saveChunk(chat, msgs)))
+      this.clients.map(cl => cl.saveChunk(channelName, msgs)))
   }
 }
