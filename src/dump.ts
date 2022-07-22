@@ -61,7 +61,10 @@ class JsonlDumper implements IDumper {
   }
 
   private stringify (chat: chat1.ConvSummary, msg: CleanedMessage): string {
-    return JSON.stringify({ ...msg, channel_name: chat.channel.name })
+    const name = chat.channel.topicName
+      ? chat.channel.name + '#' + chat.channel.topicName
+      : chat.channel.name
+    return JSON.stringify({ ...msg, channel_name: name })
   }
 
   async init () {}
