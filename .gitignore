@@ -6,5 +6,7 @@ node_modules/
 dist/
 yarn.lock
 config.json
+*.session
 /*.txt
 /*.jsonl
+*.gpg

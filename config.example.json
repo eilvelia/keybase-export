@@ -1,5 +1,5 @@
 {
-  "chats": ["you", "you,them"],
+  "chats": ["alice,bob", "alice", "alice,emma", "family#general"],
   "init": {
     "type": "init",
     "username": "yourusername",
@@ -9,9 +9,12 @@
     "enabled": false,
     "timeout": 20
   },
-  "eol": "\n",
   "attachments": {
     "addStub": true
+  },
+  "jsonl": {
+    "enabled": true,
+    "file": "export.jsonl"
   },
   "elasticsearch": {
     "enabled": false,
@@ -21,8 +24,5 @@
       "log": "info"
     }
   },
-  "jsonl": {
-    "enabled": true,
-    "file": "export.jsonl"
-  }
+  "eol": "\n"
 }

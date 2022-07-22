@@ -90,6 +90,7 @@ function convertMessage (msg: chat1.MsgSummary, storage?: AlterationStorage): Cl
     device_name = msg.sender.deviceName
   }
 
+  // The undefined fields are defined here to somewhat preserve the order
   const output: CleanedMessage = {
     text,
     id: msg.id,
@@ -148,7 +149,7 @@ function convertMessage (msg: chat1.MsgSummary, storage?: AlterationStorage): Cl
 const CHUNK_SIZE = 300
 
 async function* loadHistory (channel: chat1.ChatChannel) {
-  console.log(`loadHistory start: ${channel.name}`)
+  console.log(`Started loading messages: ${channel.name}`)
   let totalMessages = 0
   let next = undefined
   while (true) {
@@ -166,7 +167,7 @@ async function* loadHistory (channel: chat1.ChatChannel) {
     if (pagination.last)
       break
   }
-  console.log(`loadHistory end: ${channel.name} (${totalMessages} messages)`)
+  console.log(`Finished loading messages: ${channel.name} (total of ${totalMessages} messages / events)`)
 }
 
 function watchChat (chat: chat1.ConvSummary): Promise<void> {
@@ -183,7 +184,7 @@ function watchChat (chat: chat1.ConvSummary): Promise<void> {
         if (content.delete) storage.delete(content.delete)
         return
       default:
-        // Since we enumerate messages from oldes to newest, the alter storage should be empty
+        // Since we enumerate messages from oldest to newest, the alter storage should be empty
         const cleanedMessage = convertMessage(message)
         if (!cleanedMessage) return
         storage.add(cleanedMessage, msg => {
@@ -206,8 +207,8 @@ async function processChat (chat: chat1.ConvSummary) {
   const alterStorage = new AlterationStorage()
 
   for await (const chunk of loadHistory(chat.channel)) {
-    debug(`New chunk (${chunk.length}): ${chat.channel.name}`) // for time displaying
-    console.log(`New chunk (${chunk.length}): ${chat.channel.name}`)
+    debug(`Chunk (${chunk.length}): ${chat.channel.name}`) // for time displaying
+    console.log(`Received new chunk (${chunk.length} msgs): ${chat.channel.name}`)
     const cleanedMessages = chunk
       .map(msg => convertMessage(msg, alterStorage))
       .filter((x): x is CleanedMessage => x != null)
@@ -219,7 +220,7 @@ async function processChat (chat: chat1.ConvSummary) {
 // TODO: Incremental mode.
 
 async function main () {
-  console.log('Initializing')
+  console.log('Initializing...')
 
   await init()
 
@@ -231,7 +232,7 @@ async function main () {
   debug('watcher.enabled', watcher.enabled)
   debug('watcher.timeout', watcher.timeout)
 
-  console.log('Getting chat list')
+  console.log('Getting chat list...')
   const chats = await bot.chat.list()
   console.log(`Total chats: ${chats.length}`)
   // debug('Chat list', chats); return deinit()
@@ -241,7 +242,7 @@ async function main () {
     if (chat)
       await processChat(chat)
     else
-      warn(`Chat '${query}' not found`)
+      warn(`Chat '${query}' has not been found`)
   }
 
   if (!watcher.enabled)
@@ -249,7 +250,7 @@ async function main () {
 }
 
 function deinit (): Promise<void> {
-  console.log('deinit')
+  console.log('Deinitializing')
   return bot.deinit()
     .catch(fatal)
 }

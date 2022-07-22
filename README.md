@@ -16,7 +16,7 @@ A tool to export keybase chats.
 
 [jsonl]: http://jsonlines.org/
 
-### Config
+### Configuration
 
 See [config.example.json][] for a config example and [config.ts][] for the config schema.
 
@@ -25,16 +25,9 @@ See [config.example.json][] for a config example and [config.ts][] for the confi
 
 ### Usage
 
-Node.js v6.0.0+ is required.
+1. Install Node.js, version 6.0.0 or newer.
 
-Install `keybase-export` via npm:
-
-```sh
-npm install -g keybase-export
-# local installation: $ npm install keybase-export
-```
-
-Or clone it from GitHub (recommended):
+2. Clone the repository from Github and run the installation commands:
 
 ```sh
 git clone https://github.com/Bannerets/keybase-export.git
@@ -43,14 +36,34 @@ npm install
 npm run build
 ```
 
-Copy `config.example.json` to `config.json` and edit it.
+3. Copy `config.example.json` to `config.json` and edit it. At least, `chats`, `username` and `paperkey` should be replaced.
 
-Run:
+4. Launch:
 
-```console
-$ keybase-export [path/to/config]
+```sh
+$ ./bin/keybase-export
+# or: $ node dist
 ```
 
-(`$ ./bin/keybase-export` or `$ node dist` if you only cloned the repository)
+If the config's name is not `config.json`, it can be passed as an argument:
 
-Debug mode: `DEBUG=keybase-export* keybase-export`
+```sh
+$ ./bin/keybase-export config-2.json
+```
+
+Debug mode: `DEBUG=keybase-export* ./bin/keybase-export`
+
+---
+
+Another way to install is via NPM (not recommended, the version might be outdated):
+
+```sh
+npm install -g keybase-export
+# local installation: $ npm install keybase-export
+```
+
+And launch:
+
+```
+$ keybase-export [path/to/config]
+```
