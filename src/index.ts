@@ -198,8 +198,9 @@ async function* loadHistory (channel: chat1.ChatChannel) {
     })
     totalMessages += messages.length
     next = pagination.next
-    if (messages.length > 0)
-      yield messages
+    const validMessages = messages.filter(Boolean)
+    if (validMessages.length > 0)
+      yield validMessages
     if (pagination.last)
       break
   }
