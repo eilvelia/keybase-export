@@ -179,12 +179,20 @@ function convertMessage (msg: chat1.MsgSummary, storage?: AlterationStorage): Cl
   return output
 }
 
+function formatTime (ms: number) {
+  const totalSeconds = Math.floor(ms / 1000)
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`
+}
+
 // Shouldn't be more than ~950
 // UPD: Changed from 900 to 300, 900 stopped working correctly
 const CHUNK_SIZE = 300
 
 async function* loadHistory (channel: chat1.ChatChannel) {
   const channelName = getChannelName(channel)
+  const startTime = Date.now()
   console.log(`Started loading messages: ${channelName}`)
   let totalMessages = 0
   let next = undefined
@@ -204,7 +212,8 @@ async function* loadHistory (channel: chat1.ChatChannel) {
     if (pagination.last)
       break
   }
-  console.log(`Finished loading messages: ${channelName} (total of ${totalMessages} messages / events)`)
+  const elapsed = Date.now() - startTime
+  console.log(`Finished loading messages: ${channelName} (total of ${totalMessages} messages/events), took ${formatTime(elapsed)}.`)
 }
 
 function watchChat (chat: chat1.ConvSummary): Promise<void> {
