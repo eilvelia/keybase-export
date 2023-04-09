@@ -260,7 +260,7 @@ const CHUNK_SIZE = 300
 async function* loadHistory (channel: chat1.ChatChannel) {
   const channelName = getChannelName(channel)
   const startTime = Date.now()
-  console.log(`Started loading messages: ${channelName}`)
+  console.log(`[${channelName}] Started loading messages.`)
   let totalMessages = 0
   let next = undefined
   while (true) {
@@ -274,21 +274,23 @@ async function* loadHistory (channel: chat1.ChatChannel) {
     totalMessages += messages.length
     next = pagination.next
     const validMessages = messages.filter(Boolean)
-    if (validMessages.length > 0)
+    if (validMessages.length > 0) {
+      console.log(`[${channelName}] Received new chunk (${validMessages.length} msgs).`)
       yield validMessages
+    }
     if (pagination.last)
       break
   }
   const elapsed = Date.now() - startTime
-  console.log(`Finished loading messages: ${channelName} (total of ${totalMessages} messages/events), took ${formatTime(elapsed)}.`)
+  console.log(`[${channelName}] Finished loading messages (total of ${totalMessages} messages/events) in ${formatTime(elapsed)}.`)
 }
 
 function watchChat (chat: chat1.ConvSummary): Promise<void> {
   const channelName = getChannelName(chat.channel)
-  console.log(`Watching for new messages: ${channelName}`)
+  console.log(`[${channelName}] Watching for new messages.`)
   const storage = new WatcherStorage(config.watcher.timeout)
   const onMessage: OnMessage = message => {
-    console.log(`Watcher: new message (${message.id}): ${channelName}`)
+    console.log(`Watcher: new message (${message.id}) in ${channelName}.`)
     const { content } = message
     switch (content.type) {
       case 'edit':
@@ -325,7 +327,6 @@ async function processChat (chat: chat1.ConvSummary) {
   const channelName = getChannelName(chat.channel)
 
   for await (const chunk of loadHistory(chat.channel)) {
-    console.log(`Received new chunk (${chunk.length} msgs): ${channelName}`)
     const cleanedMessages = chunk
       .map(msg => {
         const newmsg = convertMessage(msg, alterStorage)
