@@ -10,7 +10,8 @@
     "timeout": 20
   },
   "attachments": {
-    "addStub": true
+    "download": false,
+    "directory": "attachments"
   },
   "messageTypes": {
     "reactions": true,

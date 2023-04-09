@@ -1,3 +1,5 @@
+import path from 'path'
+import fsp from 'fs/promises'
 import Debug from 'debug'
 import Bot from 'keybase-bot'
 import { warn, err, fatal } from './log'
@@ -68,11 +70,74 @@ function findChat (chats: chat1.ConvSummary[], query: string): chat1.ConvSummary
   }
 }
 
-function addAttachmentStub (object: chat1.Asset): string {
-  if (!config.attachments.addStub) return object.title
-  const space = object.title === '' ? '' : ' '
-  return `[Attachment ${object.filename}]${space}${object.title}`
+async function fileExists (filename: string) {
+  try {
+    await fsp.stat(filename)
+    return true
+  } catch (e) {
+    // Currently we don't check for other possible errors
+    return false
+  }
 }
+
+class Attachments {
+  private queue: chat1.MsgSummary[] = []
+  private downloading = false
+  private callbacks: (() => void)[] = []
+
+  queueDownload (msg: chat1.MsgSummary) {
+    if (!config.attachments.download) return
+    this.queue.push(msg)
+    if (!this.downloading)
+      this.loop().catch(console.error)
+  }
+
+  waitUntilFinished (): Promise<void> {
+    if (!this.downloading) return Promise.resolve()
+    return new Promise(resolve => this.callbacks.push(resolve))
+  }
+
+  private async loop () {
+    this.downloading = true
+    while (this.queue.length > 0) {
+      let target: string | null = null
+      try {
+        const msg = this.queue.shift() as chat1.MsgSummary
+        if (!msg.content.attachment) throw Error('No content.attachment')
+        const objectFilename = msg.content.attachment.object.filename || ''
+        const subdir = getChannelName(msg.channel)
+        const filename = `${msg.id}-${objectFilename}`
+        target = `${subdir}/${filename}`
+        const downloadDir = path.join(config.attachments.directory, subdir)
+        await fsp.mkdir(downloadDir, { recursive: true })
+        const downloadPath = path.resolve(downloadDir, filename)
+        if (await fileExists(downloadPath)) {
+          this.log(`File ${target} already exists: skipping`)
+          continue
+        }
+        await bot.chat.download(msg.channel, msg.id, downloadPath)
+        this.log(`Downloaded ${target}`)
+      } catch (e) {
+        if (target)
+          this.log(`Failed to download ${target}: "${String(e)}"`, true)
+        else
+          this.log(`Failed to download: "${String(e)}"`, true)
+      }
+    }
+    this.downloading = false
+    if (this.callbacks.length > 0) {
+      for (const callback of this.callbacks) callback()
+      this.callbacks = []
+    }
+  }
+
+  private log (message: string, stderr = false) {
+    const output = `${message} (${this.queue.length} more in the queue).`
+    if (stderr) console.error(output); else console.log(output)
+  }
+}
+
+const attachments = new Attachments()
 
 function convertMessage (msg: chat1.MsgSummary, storage?: AlterationStorage): CleanedMessage | null {
   const alter = storage?.get(msg.id)
@@ -131,15 +196,17 @@ function convertMessage (msg: chat1.MsgSummary, storage?: AlterationStorage): Cl
       break
 
     case 'attachment':
-      // TODO: Support attachment downloading
       if (!content.attachment) break
       const { attachment } = content
       const { object } = attachment
+      // path to attachment = <config.attachments.directory> "/" <msg.channel_name>
+      //                      "/" <msg.id> "-" <msg.attachment.filename>
+      // not included in the attachment object explicitly for now
       output.attachment = {
-        path: object.path,
+        filename: object.filename,
         asset_type: object.metadata.assetType
       }
-      output.text = addAttachmentStub(object)
+      output.text = object.title || ''
       break
 
     case 'reaction':
@@ -231,9 +298,11 @@ function watchChat (chat: chat1.ConvSummary): Promise<void> {
         if (content.delete) storage.delete(content.delete)
         return
       default:
-        // Since we enumerate messages from oldest to newest, the alter storage should be empty
+        // Since we enumerate messages from oldest to newest,
+        // the alter storage should always be empty.
         const cleanedMessage = convertMessage(message)
         if (!cleanedMessage) return
+        if (cleanedMessage.attachment) attachments.queueDownload(message)
         storage.add(cleanedMessage, msg => {
           debug('watchChat save', msg)
           dumper.saveMessage(channelName, msg)
@@ -256,10 +325,13 @@ async function processChat (chat: chat1.ConvSummary) {
   const channelName = getChannelName(chat.channel)
 
   for await (const chunk of loadHistory(chat.channel)) {
-    debug(`Chunk (${chunk.length}): ${channelName}`) // for time displaying
     console.log(`Received new chunk (${chunk.length} msgs): ${channelName}`)
     const cleanedMessages = chunk
-      .map(msg => convertMessage(msg, alterStorage))
+      .map(msg => {
+        const newmsg = convertMessage(msg, alterStorage)
+        if (newmsg && newmsg.attachment) attachments.queueDownload(msg)
+        return newmsg
+      })
       .filter((x): x is CleanedMessage => x != null)
     await dumper.saveChunk(channelName, cleanedMessages)
     // console.dir(chunk.slice(-3), { depth: null })
@@ -294,8 +366,10 @@ async function main () {
       warn(`Chat '${query}' has not been found`)
   }
 
-  if (!watcher.enabled)
-    await deinit()
+  if (watcher.enabled) return
+
+  await attachments.waitUntilFinished()
+  await deinit()
 }
 
 function deinit (): Promise<void> {

@@ -11,8 +11,8 @@ A tool to export keybase chats.
 - [ ] Export to SQLite
 - [x] Export to ElasticSearch
 - [x] Watcher for new messages
+- [x] Attachment downloading
 - [ ] Incremental export
-- [ ] Attachment downloading
 
 [jsonl]: http://jsonlines.org/
 
@@ -25,7 +25,7 @@ See [config.example.json][] for a config example and [config.ts][] for the confi
 
 ### Usage
 
-1. Install Node.js, version 6.0.0 or newer.
+1. Install Node.js.
 
 2. Clone the repository from Github and run the installation commands:
 
@@ -45,7 +45,7 @@ $ ./bin/keybase-export
 # or: $ node dist
 ```
 
-If the config's name is not `config.json`, it can be passed as an argument:
+Optionally, the configuration file can be passed as a cli argument:
 
 ```sh
 $ ./bin/keybase-export config-2.json
@@ -65,5 +65,5 @@ npm install -g keybase-export
 And launch:
 
 ```
-$ keybase-export [path/to/config]
+$ keybase-export [<config>]
 ```

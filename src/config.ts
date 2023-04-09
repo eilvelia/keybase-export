@@ -25,7 +25,9 @@ export type Config = {
     timeout: number // seconds
   },
   attachments: {
-    addStub: boolean // Adds '[Attachment <filename>]' to the caption
+    // Download attachments
+    download: boolean,
+    directory: string
   },
   // // (Incremental export is not implemented)
   // incremental: {
@@ -77,8 +79,9 @@ const schema = Joi.object({
     headline: Joi.boolean().default(true)
   }).default(),
   attachments: Joi.object({
-    addStub: Joi.boolean().default(true)
-  }).default(),
+    download: Joi.boolean().default(false),
+    directory: Joi.string().default('attachments')
+  }).default().unknown(true),
   jsonl: Joi.object({
     enabled: Joi.boolean().default(false),
     file: Joi.string().default('export.jsonl')

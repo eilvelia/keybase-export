@@ -8,7 +8,7 @@ export type CleanedMessage = {
   },
   reply_to?: number,
   attachment?: {
-    path: string,
+    filename: string,
     asset_type: string
   },
   sent_at: number,
