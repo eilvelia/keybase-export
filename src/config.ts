@@ -94,12 +94,17 @@ const schema = Joi.object({
   eol: Joi.string().default('\n')
 }).unknown(true)
 
-const configPath = process.argv[2] || 'config.json'
+let config: Config | null = null
 
-const untrustedConfig = JSON.parse(fs.readFileSync(configPath).toString())
+export function initConfig (filename: string): void {
+  if (config != null) throw new Error('Config is already initialized')
+  const untrustedConfig = JSON.parse(fs.readFileSync(filename).toString())
+  const result = schema.validate(untrustedConfig)
+  if (result.error) throw result.error
+  config = result.value
+}
 
-const result = schema.validate(untrustedConfig)
-
-if (result.error) throw result.error
-
-export const config: Config = result.value
+export function getConfig (): Config {
+  if (config == null) throw new Error('Config is not initialized')
+  return config
+}

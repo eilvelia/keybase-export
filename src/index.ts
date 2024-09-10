@@ -1,9 +1,10 @@
 import path from 'path'
+import fs from 'fs'
 import fsp from 'fs/promises'
 import Debug from 'debug'
 import Bot from 'keybase-bot'
 import { warn, err, fatal } from './log'
-import { config } from './config'
+import { getConfig, initConfig, type Config } from './config'
 import { Dumper } from './dump'
 import { WatcherStorage, AlterationStorage } from './message-storage'
 import { convertSystemMessage } from './system-message'
@@ -15,7 +16,8 @@ import type { CleanedMessage } from './types'
 const debug = Debug('keybase-export')
 
 const bot = new Bot()
-const dumper = new Dumper()
+let dumper: Dumper
+let config: Config
 
 const INIT_OPTIONS = {
   disableTyping: true
@@ -379,6 +381,47 @@ function deinit (): Promise<void> {
     .catch(fatal)
 }
 
-dumper.init()
-  .then(main)
-  .catch(fatal)
+const argv = process.argv
+
+function getConfigPath () {
+  for (const arg of argv.slice(2)) {
+    if (arg[0] === '-') continue
+    return path.resolve(arg)
+  }
+  return path.resolve('config.json')
+}
+
+if (argv.includes('--help') || argv.includes('-h')) {
+  console.log(`\
+Usage:
+    $ keybase-export [<options>] [<config>]
+
+    <config> defaults to config.json in the current working directory.
+
+Options:
+    --init <filename>
+        Output a config example to <filename> and exit.
+
+    -h, --help
+        Print this text.
+
+    -v, --version
+        Print version.`)
+} else if (argv.includes('-v') || argv.includes('--version')) {
+  console.log(require('../package.json').version)
+} else if (argv.includes('--init')) {
+  const filename = argv[argv.indexOf('--init') + 1]
+  if (!filename) {
+    console.error('Error: --init expects a filename')
+    process.exitCode = 1
+  } else {
+    fs.copyFileSync(path.resolve(__dirname, '..', 'config.example.json'), filename)
+  }
+} else {
+  initConfig(getConfigPath())
+  config = getConfig()
+  dumper = new Dumper()
+  dumper.init()
+    .then(main)
+    .catch(fatal)
+}

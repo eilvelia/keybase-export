@@ -1,10 +1,10 @@
-## keybase-export
+# keybase-export &nbsp; [![npm](https://img.shields.io/npm/v/keybase-export.svg)](https://www.npmjs.com/package/keybase-export)
 
-[![npm](https://img.shields.io/npm/v/keybase-export.svg)](https://www.npmjs.com/package/keybase-export)
+A tool to export [Keybase][] chats.
 
-A tool to export keybase chats.
+[Keybase]: https://keybase.io/
 
-### Features
+## Features
 
 - [x] Configuration file
 - [x] Export to [jsonl][] (json lines)
@@ -16,54 +16,51 @@ A tool to export keybase chats.
 
 [jsonl]: http://jsonlines.org/
 
-### Configuration
+## Requirements
 
-See [config.example.json][] for a config example and [config.ts][] for the config schema.
+- Node.js (around version 10 or newer)
+
+## Installation
+
+`keybase-export` can be installed via npm:
+
+```console
+$ npm install --global keybase-export
+```
+
+It is also possible to launch it as `npx keybase-export` without installation.
+
+Alternatively, the latest possible version can be obtained by
+cloning the repository and running `npm install`.
+
+## Usage
+
+```console
+$ keybase-export [<options>] [<config>]
+```
+
+The configuration of `keybase-export` is pretty barebones: it reads everything
+it needs from a json file, that can be specified as a command line argument, or
+defaults to the `config.json` file in the current working directory. See the
+[config.example.json][] file for a config example and [config.ts][] for the
+config schema.
+
+`keybase-export --init <filename>` copies the config example to `<filename>`.
+Afterwards, you should edit it. At the very least, the `chats`, `username`,
+and `paperkey` fields should be replaced. That is, for this to work, you
+should generate a paper key and paste it into the config. (There is an
+alternative `initFromRunningService` method that uses the running
+instance of keybase, but it is not as stable.)
+
+To enable debug logs, set the `DEBUG` env variable to `keybase-export*`.
 
 [config.example.json]: config.example.json
 [config.ts]: src/config.ts
 
-### Usage
+## Troubleshooting
 
-1. Install Node.js.
+- `Path can't be longer than 108 characters (failed to chdir)`
 
-2. Clone the repository from Github and run the installation commands:
-
-```sh
-git clone https://github.com/Bannerets/keybase-export.git
-cd keybase-export
-npm install
-npm run build
-```
-
-3. Copy `config.example.json` to `config.json` and edit it. At least, `chats`, `username` and `paperkey` should be replaced.
-
-4. Launch:
-
-```sh
-$ ./bin/keybase-export
-# or: $ node dist
-```
-
-Optionally, the configuration file can be passed as a cli argument:
-
-```sh
-$ ./bin/keybase-export config-2.json
-```
-
-Debug mode: `DEBUG=keybase-export* ./bin/keybase-export`
-
----
-
-Another way to install is via NPM (not recommended, the version might be outdated):
-
-```sh
-npm install -g keybase-export
-# local installation: $ npm install keybase-export
-```
-
-And launch:
-
-```
-$ keybase-export [<config>]
-```
+On macOS, this error can occur during attachment downloading due to way too long
+`$TMPDIR`. As a workaround, just set the `TMPDIR` env variable to something
+shorter.

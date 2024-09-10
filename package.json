@@ -1,13 +1,12 @@
 {
   "name": "keybase-export",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A tool to export keybase chats",
   "main": "dist/index.js",
   "scripts": {
     "clean": "rimraf dist/",
-    "lint": "eslint . --max-warnings 0",
     "build": "tsc",
-    "test": "npm run lint",
+    "test": "",
     "prepare": "npm run clean && npm run build",
     "prepack": "npm test",
     "start": "npm run build && node dist"
@@ -21,39 +20,36 @@
   ],
   "dependencies": {
     "@hapi/joi": "^17.1.1",
-    "debug": "^4.1.1",
+    "debug": "^4.3.7",
     "elasticsearch": "^15.5.0",
     "keybase-bot": "^3.6.1"
   },
   "devDependencies": {
-    "@bannerets/eslint-config": "^0.3.0",
-    "@types/debug": "^4.1.5",
+    "@types/debug": "^4.1.12",
     "@types/elasticsearch": "^5.0.36",
     "@types/hapi__joi": "^17.1.4",
-    "@types/node": "^14.14.26",
-    "@typescript-eslint/eslint-plugin": "^4.15.0",
-    "@typescript-eslint/parser": "^4.15.0",
-    "eslint": "^7.5.0",
-    "rimraf": "^2.7.1",
-    "typescript": "^4.1.5"
+    "@types/node": "^22.5.4",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.6.2"
   },
   "bin": {
     "keybase-export": "bin/keybase-export"
   },
   "engines": {
-    "node": ">= 6.0.0"
+    "node": ">= 10.0.0"
   },
-  "author": "Bannerets <comonoid@protonmail.com>",
+  "author": "eilvelia <hi@eilvelia.cat>",
   "license": "MIT",
   "keywords": [
-    "keybase"
+    "keybase",
+    "cli"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Bannerets/keybase-export.git"
+    "url": "git+https://github.com/eilvelia/keybase-export.git"
   },
   "bugs": {
-    "url": "https://github.com/Bannerets/keybase-export/issues"
+    "url": "https://github.com/eilvelia/keybase-export/issues"
   },
-  "homepage": "https://github.com/Bannerets/keybase-export#readme"
+  "homepage": "https://github.com/eilvelia/keybase-export#readme"
 }

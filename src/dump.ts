@@ -1,6 +1,6 @@
 import fs from 'fs'
 import { Client as EsClient } from 'elasticsearch'
-import { config } from './config'
+import { getConfig } from './config'
 import type { CleanedMessage } from './types'
 
 export interface IDumper {
@@ -10,12 +10,12 @@ export interface IDumper {
 }
 
 function genEsIndexName (channelName: string) {
-  return config.elasticsearch.indexPattern
+  return getConfig().elasticsearch.indexPattern
     .replace('$channelname$', channelName.replace('#', '__'))
 }
 
 class ElasticDumper implements IDumper {
-  private readonly client = new EsClient(config.elasticsearch.config)
+  private readonly client = new EsClient(getConfig().elasticsearch.config)
 
   async init () {
     await this.client.ping({})
@@ -48,7 +48,7 @@ class ElasticDumper implements IDumper {
 }
 
 class JsonlDumper implements IDumper {
-  private readonly stream = fs.createWriteStream(config.jsonl.file)
+  private readonly stream = fs.createWriteStream(getConfig().jsonl.file)
 
   private asyncWrite (str: string): Promise<void> {
     return new Promise(resolve => {
@@ -65,12 +65,15 @@ class JsonlDumper implements IDumper {
   async init () {}
 
   saveMessage (channelName: string, msg: CleanedMessage) {
-    const str = this.stringify(channelName, msg) + config.eol
+    const str = this.stringify(channelName, msg) + getConfig().eol
     return this.asyncWrite(str)
   }
 
   saveChunk (channelName: string, msgs: CleanedMessage[]) {
-    const str = msgs.map(m => this.stringify(channelName, m)).join(config.eol) + config.eol
+    const str = msgs
+      .map(m => this.stringify(channelName, m))
+      .join(getConfig().eol)
+      + getConfig().eol
     return this.asyncWrite(str)
   }
 }
@@ -79,10 +82,10 @@ export class Dumper implements IDumper {
   private readonly clients: IDumper[] = []
 
   constructor () {
-    if (config.elasticsearch.enabled)
+    if (getConfig().elasticsearch.enabled)
       this.clients.push(new ElasticDumper())
 
-    if (config.jsonl.enabled)
+    if (getConfig().jsonl.enabled)
       this.clients.push(new JsonlDumper())
   }
 
