@@ -74,9 +74,9 @@ export type AlterObj = {
 }
 type AlterationMap = Map<MsgId, AlterObj>
 
-/** A storage for all editions & deletions in a channel.
-  * Future editions / delitions go first.
-  * Used in the exporter to mark messages as "edited" and save correct device ids.
+/** A storage for all edits & deletions in a channel.
+  * Future edits / deletions go first.
+  * Used in the exporter to mark past messages as "edited" and save correct device ids.
   */
 export class AlterationStorage {
   private readonly map: AlterationMap = new Map()
@@ -94,7 +94,7 @@ export class AlterationStorage {
     if (msg.content.edit == null)
       throw new Error(`Message ${msg.id} doesn't contain the 'edit' field`)
     const id = msg.content.edit.messageId
-    // Skip if a newer edit is already in the map
+    // Skip if a newer edit is already inside the map
     if (this.skipPastAlteration('edit', id)) return
     // TODO: Add edit time (msg.sent_at_ms) as a field?
     const alterObj = {

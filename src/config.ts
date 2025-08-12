@@ -1,4 +1,4 @@
-import fs from 'fs'
+import fs from 'node:fs'
 import Joi from '@hapi/joi'
 // import { fatal } from './log'
 
@@ -29,11 +29,6 @@ export type Config = {
     download: boolean,
     directory: string
   },
-  // // (Incremental export is not implemented)
-  // incremental: {
-  //   enabled: boolean,
-  //   sessionFile: string // like "keybase-export.session"
-  // },
   messageTypes: {
     reactions: boolean,
     reactionMessages: boolean,
@@ -44,10 +39,9 @@ export type Config = {
     enabled: boolean,
     file: string
   },
-  elasticsearch: {
+  incremental: {
     enabled: boolean,
-    indexPattern: string,
-    config: Record<string, any> // ElasticSearch config
+    previousExportFile: string
   },
   eol: string
 }
@@ -86,10 +80,9 @@ const schema = Joi.object({
     enabled: Joi.boolean().default(false),
     file: Joi.string().default('export.jsonl')
   }).default(),
-  elasticsearch: Joi.object({
+  incremental: Joi.object({
     enabled: Joi.boolean().default(false),
-    indexPattern: Joi.string().default('keybase_$channelname$'),
-    config: Joi.object().default({ host: 'localhost:9200', log: 'info' })
+    previousExportFile: Joi.string().default('old-export.jsonl')
   }).default(),
   eol: Joi.string().default('\n')
 }).unknown(true)

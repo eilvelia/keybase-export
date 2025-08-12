@@ -23,13 +23,9 @@
     "enabled": true,
     "file": "export.jsonl"
   },
-  "elasticsearch": {
+  "incremental": {
     "enabled": false,
-    "indexPattern": "keybase_$channelname$",
-    "config": {
-      "host": "localhost:9200",
-      "log": "info"
-    }
+    "previousExportFile": "old-export.jsonl"
   },
   "eol": "\n"
 }

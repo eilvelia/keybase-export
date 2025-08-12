@@ -1,6 +1,6 @@
-import path from 'path'
-import fs from 'fs'
-import fsp from 'fs/promises'
+import path from 'node:path'
+import fs from 'node:fs'
+import fsp from 'node:fs/promises'
 import Debug from 'debug'
 import Bot from 'keybase-bot'
 import { warn, err, fatal } from './log'
@@ -141,7 +141,7 @@ class Attachments {
 
 const attachments = new Attachments()
 
-function convertMessage (msg: chat1.MsgSummary, storage?: AlterationStorage): CleanedMessage | null {
+function processMessage (msg: chat1.MsgSummary, storage?: AlterationStorage): CleanedMessage | null {
   const alter = storage?.get(msg.id)
 
   if (alter?.type === 'deleted') {
@@ -192,15 +192,13 @@ function convertMessage (msg: chat1.MsgSummary, storage?: AlterationStorage): Cl
   switch (content.type) {
     case 'text':
       if (!content.text) break
-      const { text } = content
-      if (output.text == null) output.text = text.body
-      output.reply_to = text.replyTo
+      if (output.text == null) output.text = content.text.body
+      output.reply_to = content.text.replyTo
       break
 
     case 'attachment':
       if (!content.attachment) break
-      const { attachment } = content
-      const { object } = attachment
+      const object = content.attachment.object
       // path to attachment = <config.attachments.directory> "/" <msg.channel_name>
       //                      "/" <msg.id> "-" <msg.attachment.filename>
       // not included in the attachment object explicitly for now
@@ -259,32 +257,39 @@ function formatTime (ms: number) {
 // UPD: Changed from 900 to 300, 900 stopped working correctly
 const CHUNK_SIZE = 300
 
-async function* loadHistory (channel: chat1.ChatChannel) {
+async function* loadHistory (channel: chat1.ChatChannel, untilId: number = -Infinity) {
   const channelName = getChannelName(channel)
   const startTime = Date.now()
   console.log(`[${channelName}] Started loading messages.`)
-  let totalMessages = 0
+  let count = 0
   let next = undefined
   while (true) {
-    const { messages, pagination }: ReadResult = await bot.chat.read(channel, {
+    let { messages, pagination }: ReadResult = await bot.chat.read(channel, {
       peek: true,
       pagination: {
         num: CHUNK_SIZE,
         next
       }
     })
-    totalMessages += messages.length
+    // keybase can very rarely return null as a message
+    messages = messages.filter(Boolean)
+    count += messages.length
     next = pagination.next
-    const validMessages = messages.filter(Boolean)
-    if (validMessages.length > 0) {
-      console.log(`[${channelName}] Received new chunk (${validMessages.length} msgs).`)
-      yield validMessages
+    const currentMinId = messages.reduce((acc, m) => Math.min(acc, m.id), Infinity)
+    if (messages.length > 0) {
+      const remaining = Math.max(0, currentMinId - Math.max(1, untilId))
+      const progress = count / (count + remaining) * 100
+      console.log(`[${channelName}] Received new chunk (${messages.length} msgs). [about ${progress.toFixed(1)}% done]`)
+      yield messages
     }
     if (pagination.last)
       break
+    // incremental mode
+    if (currentMinId <= untilId)
+      break
   }
   const elapsed = Date.now() - startTime
-  console.log(`[${channelName}] Finished loading messages (total of ${totalMessages} messages/events) in ${formatTime(elapsed)}.`)
+  console.log(`[${channelName}] Finished loading messages (total of ${count} events) in ${formatTime(elapsed)}.`)
 }
 
 function watchChat (chat: chat1.ConvSummary): Promise<void> {
@@ -304,7 +309,7 @@ function watchChat (chat: chat1.ConvSummary): Promise<void> {
       default:
         // Since we enumerate messages from oldest to newest,
         // the alter storage should always be empty.
-        const cleanedMessage = convertMessage(message)
+        const cleanedMessage = processMessage(message)
         if (!cleanedMessage) return
         if (cleanedMessage.attachment) attachments.queueDownload(message)
         storage.add(cleanedMessage, msg => {
@@ -320,28 +325,57 @@ function watchChat (chat: chat1.ConvSummary): Promise<void> {
   return bot.chat.watchChannelForNewMessages(chat.channel, onMessage, onError)
 }
 
-async function processChat (chat: chat1.ConvSummary) {
-  if (config.watcher.enabled)
-    await watchChat(chat)
-
+async function exportChat (chat: chat1.ConvSummary, previousExport: CleanedMessage[] = []) {
   const alterStorage = new AlterationStorage()
 
   const channelName = getChannelName(chat.channel)
 
-  for await (const chunk of loadHistory(chat.channel)) {
-    const cleanedMessages = chunk
-      .map(msg => {
-        const newmsg = convertMessage(msg, alterStorage)
-        if (newmsg && newmsg.attachment) attachments.queueDownload(msg)
-        return newmsg
-      })
-      .filter((x): x is CleanedMessage => x != null)
-    await dumper.saveChunk(channelName, cleanedMessages)
+  if (previousExport.length > 0) {
+    console.log(`[${channelName}] Basing export on previous ${previousExport.length} messages.`)
+
+    previousExport.sort((a, b) => b.id - a.id)
+  }
+
+  const largestPreviousId = previousExport?.[0]?.id ?? -Infinity
+
+  let smallestLoadedId = Infinity
+
+  // Process chat history from end to start
+  for await (const chunk of loadHistory(chat.channel, largestPreviousId)) {
     // console.dir(chunk.slice(-3), { depth: null })
+    const cleanedMessages: CleanedMessage[] = []
+    for (const message of chunk) {
+      const cleanedMsg = processMessage(message, alterStorage)
+      if (cleanedMsg == null)
+        continue
+      if (cleanedMsg.attachment)
+        attachments.queueDownload(message)
+      smallestLoadedId = Math.min(smallestLoadedId, cleanedMsg.id)
+      cleanedMessages.push(cleanedMsg)
+    }
+    await dumper.saveChunk(channelName, cleanedMessages)
+  }
+
+  if (previousExport.length > 0)
+    console.log(`[${channelName}] Reusing previous export data...`)
+
+  for (const msg of previousExport) {
+    if (msg.id >= smallestLoadedId) continue // Skip already dumped messages
+    // Process future alterations
+    const alter = alterStorage.get(msg.id)
+    if (alter?.type === 'deleted') {
+      // Skip deleted message
+      continue
+    } else if (alter?.type === 'edited') {
+      msg.edited = true
+      msg.text = alter.text
+      msg.device_id = alter.device_id
+      msg.device_name = alter.device_name
+    }
+    // Dump
+    await dumper.saveMessage(channelName, msg)
   }
 }
-
-// TODO: Incremental mode.
 
 async function main () {
   console.log('Initializing...')
@@ -356,6 +390,22 @@ async function main () {
   debug('watcher.enabled', watcher.enabled)
   debug('watcher.timeout', watcher.timeout)
 
+  let previousExportData: any[] = []
+
+  if (config.incremental.enabled) {
+    try {
+      const file = await fsp.open(config.incremental.previousExportFile)
+      for await (let line of file.readLines()) {
+        line = line.trim()
+        if (line)
+          previousExportData.push(JSON.parse(line))
+      }
+    } catch (e) {
+      console.error(`Failed to read ${config?.incremental?.previousExportFile}: ${String(e)}`)
+      console.error('Disabling incremental mode.')
+    }
+  }
+
   console.log('Getting chat list...')
   const chats = await bot.chat.list()
   console.log(`Total chats: ${chats.length}`)
@@ -363,10 +413,21 @@ async function main () {
 
   for (const query of config.chats) {
     const chat = findChat(chats, query)
-    if (chat)
-      await processChat(chat)
-    else
+    if (!chat) {
       warn(`Chat '${query}' has not been found`)
+      continue
+    }
+    if (config.watcher.enabled)
+      await watchChat(chat)
+    const channelName = getChannelName(chat.channel)
+    const previousChannelExport: CleanedMessage[] = []
+    for (const msg of previousExportData) {
+      if (msg?.channel_name === channelName) {
+        delete (msg as any).channel_name
+        previousChannelExport.push(msg)
+      }
+    }
+    await exportChat(chat, previousChannelExport)
   }
 
   if (watcher.enabled) return

@@ -9,16 +9,15 @@ A tool to export [Keybase][] chats.
 - [x] Configuration file
 - [x] Export to [jsonl][] (json lines)
 - [ ] Export to SQLite
-- [x] Export to ElasticSearch
 - [x] Watcher for new messages
 - [x] Attachment downloading
-- [ ] Incremental export
+- [x] Incremental export
 
 [jsonl]: http://jsonlines.org/
 
 ## Requirements
 
-- Node.js (around version 10 or newer)
+- Node.js (around version 18 or newer)
 
 ## Installation
 
@@ -53,6 +52,8 @@ alternative `initFromRunningService` method that uses the running
 instance of keybase, but it is not as stable.)
 
 To enable debug logs, set the `DEBUG` env variable to `keybase-export*`.
+
+The incremental mode feature is a bit experimental.
 
 [config.example.json]: config.example.json
 [config.ts]: src/config.ts

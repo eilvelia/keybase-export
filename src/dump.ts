@@ -1,5 +1,4 @@
-import fs from 'fs'
-import { Client as EsClient } from 'elasticsearch'
+import fs from 'node:fs'
 import { getConfig } from './config'
 import type { CleanedMessage } from './types'
 
@@ -9,43 +8,44 @@ export interface IDumper {
   saveChunk(channelName: string, msgs: CleanedMessage[]): Promise<void>;
 }
 
-function genEsIndexName (channelName: string) {
-  return getConfig().elasticsearch.indexPattern
-    .replace('$channelname$', channelName.replace('#', '__'))
-}
+// function genEsIndexName (channelName: string) {
+//   return getConfig().elasticsearch.indexPattern
+//     .replace('$channelname$', channelName.replace('#', '__'))
+// }
 
-class ElasticDumper implements IDumper {
-  private readonly client = new EsClient(getConfig().elasticsearch.config)
+// ElasticSearch is no longer supported
+// class ElasticDumper implements IDumper {
+//   private readonly client = new EsClient(getConfig().elasticsearch.config)
 
-  async init () {
-    await this.client.ping({})
-      .catch((e: any) => { throw new Error(`Elasticsearch is down: ${e}`) })
-  }
+//   async init () {
+//     await this.client.ping({})
+//       .catch((e: any) => { throw new Error(`Elasticsearch is down: ${e}`) })
+//   }
 
-  async saveMessage (channelName: string, msg: CleanedMessage) {
-    const indexName = genEsIndexName(channelName)
-    await this.client.index({
-      index: indexName,
-      type: '_doc',
-      id: msg.id.toString(),
-      body: msg
-    })
-  }
+//   async saveMessage (channelName: string, msg: CleanedMessage) {
+//     const indexName = genEsIndexName(channelName)
+//     await this.client.index({
+//       index: indexName,
+//       type: '_doc',
+//       id: msg.id.toString(),
+//       body: msg
+//     })
+//   }
 
-  async saveChunk (channelName: string, msgs: CleanedMessage[]) {
-    const indexName = genEsIndexName(channelName)
-    const preparedChunk = msgs.reduce((acc, msg) => {
-      acc.push({ index: { _id: msg.id.toString() } })
-      acc.push(msg)
-      return acc
-    }, [] as any[])
-    await this.client.bulk({
-      index: indexName,
-      type: '_doc',
-      body: preparedChunk
-    })
-  }
-}
+//   async saveChunk (channelName: string, msgs: CleanedMessage[]) {
+//     const indexName = genEsIndexName(channelName)
+//     const preparedChunk = msgs.reduce((acc, msg) => {
+//       acc.push({ index: { _id: msg.id.toString() } })
+//       acc.push(msg)
+//       return acc
+//     }, [] as any[])
+//     await this.client.bulk({
+//       index: indexName,
+//       type: '_doc',
+//       body: preparedChunk
+//     })
+//   }
+// }
 
 class JsonlDumper implements IDumper {
   private readonly stream = fs.createWriteStream(getConfig().jsonl.file)
@@ -82,8 +82,8 @@ export class Dumper implements IDumper {
   private readonly clients: IDumper[] = []
 
   constructor () {
-    if (getConfig().elasticsearch.enabled)
-      this.clients.push(new ElasticDumper())
+    // if (getConfig().elasticsearch.enabled)
+    //   this.clients.push(new ElasticDumper())
 
     if (getConfig().jsonl.enabled)
       this.clients.push(new JsonlDumper())

@@ -1,6 +1,6 @@
 {
   "name": "keybase-export",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "A tool to export keybase chats",
   "main": "dist/index.js",
   "scripts": {
@@ -20,23 +20,21 @@
   ],
   "dependencies": {
     "@hapi/joi": "^17.1.1",
-    "debug": "^4.3.7",
-    "elasticsearch": "^15.5.0",
+    "debug": "^4.4.1",
     "keybase-bot": "^3.6.1"
   },
   "devDependencies": {
     "@types/debug": "^4.1.12",
-    "@types/elasticsearch": "^5.0.36",
-    "@types/hapi__joi": "^17.1.4",
-    "@types/node": "^22.5.4",
+    "@types/hapi__joi": "^17.1.15",
+    "@types/node": "^22.17.1",
     "rimraf": "^6.0.1",
-    "typescript": "^5.6.2"
+    "typescript": "^5.9.2"
   },
   "bin": {
     "keybase-export": "bin/keybase-export"
   },
   "engines": {
-    "node": ">= 10.0.0"
+    "node": ">= 18.0.0"
   },
   "author": "eilvelia <hi@eilvelia.cat>",
   "license": "MIT",
