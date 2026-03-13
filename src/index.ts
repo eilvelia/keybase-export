@@ -401,6 +401,7 @@ async function main () {
         if (line)
           previousExportData.push(JSON.parse(line))
       }
+      await file.close()
     } catch (e) {
       console.error(`Failed to read ${config?.incremental?.previousExportFile}: ${String(e)}`)
       console.error('Disabling incremental mode.')
