@@ -94,7 +94,9 @@ export function convertSystemMessage (msgInput: chat1.MessageSystem): string {
           const total = refs?.reduce((a, x) => (x.commits?.length ?? 0) + a, 0) ?? 0
           const names = refs?.map(x => x.refName).join(',') ?? ''
           return `git (${repoName}): ${pusher} pushed ${total} commits to ${names}`
-        default: warn(msg.gitpush)
+        default:
+          warn(msg.gitpush)
+          return `git (${repoName}): unknown`
       }
     }
     case 5:
