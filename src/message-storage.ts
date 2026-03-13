@@ -45,6 +45,7 @@ export class WatcherStorage {
       return debugWatcher(`edit: No msg with id ${id}`)
     const { msg, timerFn } = value
     msg.text = content.body
+    msg.edited = true
     msg.device_id = sender.deviceId
     msg.device_name = sender.deviceName
     clearTimeout(value.timer)
