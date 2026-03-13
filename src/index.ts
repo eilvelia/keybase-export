@@ -90,17 +90,18 @@ class Attachments {
   queueDownload (msg: chat1.MsgSummary) {
     if (!config.attachments.download) return
     this.queue.push(msg)
-    if (!this.downloading)
+    if (!this.downloading) {
+      this.downloading = true
       this.loop().catch(console.error)
+    }
   }
 
   waitUntilFinished (): Promise<void> {
-    if (!this.downloading) return Promise.resolve()
+    if (!this.downloading && this.queue.length === 0) return Promise.resolve()
     return new Promise(resolve => this.callbacks.push(resolve))
   }
 
   private async loop () {
-    this.downloading = true
     while (this.queue.length > 0) {
       let target: string | null = null
       try {
